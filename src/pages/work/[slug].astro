@@ -1,0 +1,109 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { projects } from "../../data/projects.js";
+
+export function getStaticPaths() {
+  return projects.map((project) => ({
+    params: { slug: project.slug },
+    props: { project },
+  }));
+}
+
+const { project } = Astro.props;
+const heading = project.intro?.heading ?? project.title;
+const description = project.intro?.body ?? "";
+const modalBg = project.reveal?.bg ?? "var(--bg)";
+const modalInk = project.reveal?.ink ?? "var(--ink)";
+const modalMuted = project.reveal?.muted ?? "var(--ink-2)";
+const imageItems = project.images ?? [];
+const embedItem = project.embedUrl
+  ? {
+      type: "embed",
+      url: project.embedUrl,
+      height: project.embedHeight,
+      title: `${project.title} live experience`,
+    }
+  : null;
+const mediaItems =
+  embedItem && project.embedPlacement === "after-first-image" && imageItems.length
+    ? [imageItems[0], embedItem, ...imageItems.slice(1)]
+    : [...(embedItem ? [embedItem] : []), ...imageItems];
+---
+
+<Layout title={`${project.title} — Ji Su Kim`} description={description || `${project.title} by Ji Su Kim`}>
+  <main
+    class:list={["project-shell", project.embedUrl && "is-embed", project.flushImages && "is-flush"]}
+    style={`--modal-bg:${modalBg};--modal-ink:${modalInk};--modal-muted:${modalMuted}`}
+  >
+    <article class="project-page">
+      <header class="modal-bar project-page-bar">
+        <span class="modal-copy">
+          <span class="m-title"><span>{heading}</span><span class="m-cat">{project.category}</span></span>
+          {description && <span class="m-desc">{description}</span>}
+        </span>
+        <a class="project-contact" href="mailto:doma.k.soo@gmail.com">Contact</a>
+      </header>
+      <a class="project-close" href="/" aria-label="Back to selected work"><span aria-hidden="true">&times;</span></a>
+
+      <div class="modal-body project-page-body">
+        {mediaItems.map((item, idx) => (
+          typeof item === "object" && item.type === "embed"
+            ? (
+              <div class="embed-shell" data-embed-shell style={item.height ? `--embed-height:${item.height}` : ""}>
+                <iframe class="project-embed" src={item.url} title={item.title} allow="fullscreen; accelerometer; gyroscope" loading="eager"></iframe>
+              </div>
+            )
+            : typeof item === "object" && item.type === "youtube"
+            ? (
+              <span class="imgwrap">
+                <span class="modal-media-frame modal-video-frame">
+                  <iframe
+                    class="modal-video"
+                    src={item.url}
+                    title={item.title ?? `${project.title} video ${idx + 1}`}
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen
+                  ></iframe>
+                </span>
+              </span>
+            )
+            : (
+              <span class="imgwrap">
+                <span class="modal-media-frame">
+                  <img src={item} alt={`${project.title} image ${idx + 1}`} loading="lazy" />
+                </span>
+              </span>
+            )
+        ))}
+
+        {!mediaItems.length && (
+          <div class="m-empty">
+            <div class="ph" style={`background:radial-gradient(130% 130% at 30% 20%, ${project.color}, #0d0d10 80%)`}></div>
+            <p>Case study coming soon</p>
+          </div>
+        )}
+
+        {project.links?.length > 0 && (
+          <div class="m-links">
+            {project.links.map((link) => (
+              <a href={link.url} target="_blank" rel="noopener">{link.label} &#8599;</a>
+            ))}
+          </div>
+        )}
+      </div>
+    </article>
+  </main>
+
+  <script>
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+    window.addEventListener("message", (event) => {
+      const data = event.data;
+      if (!data || data.type !== "portfolio:embed-height") return;
+      const iframe = [...document.querySelectorAll(".project-embed")].find((frame) => frame.contentWindow === event.source);
+      if (!iframe) return;
+      iframe.closest("[data-embed-shell]")?.style.setProperty("--embed-height", `${Math.ceil(clamp(Number(data.height) || 0, 420, 12000))}px`);
+    });
+  </script>
+</Layout>

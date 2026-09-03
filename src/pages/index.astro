@@ -1,0 +1,361 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { projects } from "../data/projects.js";
+const thumbOf = (p) => p.thumb ?? null;
+const slideOrder = [
+  "oak-tree",
+  "situated-thresholds",
+  "linko",
+  "dodo",
+  "no-more-algorithm",
+  "binary-conversion-implement",
+];
+const slideProjects = slideOrder
+  .map((slug) => {
+    const index = projects.findIndex((project) => project.slug === slug);
+    return index >= 0 ? { project: projects[index], index } : null;
+  })
+  .filter(Boolean);
+const layout = [
+  { x: 11, y: 31, w: 25 },
+  { x: 39, y: 8,  w: 18.5 },
+  { x: 74, y: 49, w: 19 },
+  { x: 57, y: 18, w: 21 },
+  { x: 23, y: 64, w: 18 },
+  { x: 42, y: 61, w: 26 },
+];
+---
+<Layout title="Ji Su Kim — Interaction & Experience Design">
+  <header class="nav">
+    <a class="nav-name" href="/">Ji Su Kim</a>
+    <nav class="nav-modes" aria-label="View">
+      <button type="button" data-mode="flow" class="active" aria-pressed="true">Flow</button>
+      <button type="button" data-mode="slide" aria-pressed="false">Slide</button>
+    </nav>
+    <nav class="nav-links" aria-label="Info">
+      <button type="button" id="aboutBtn">About</button>
+      <a href="mailto:doma.k.soo@gmail.com" id="contactBtn">Contact</a>
+    </nav>
+  </header>
+
+  <div class="stage">
+    <section class="flow" id="flow" aria-label="Selected work">
+      <div class="canvas" id="canvas">
+        {projects.map((p, i) => (
+          <button class="node" type="button" data-i={i} data-slug={p.slug}
+            style={`left:${layout[i]?.x ?? 20}%;top:${layout[i]?.y ?? 20}%;--w:${layout[i]?.w ?? 18}vw`}
+            aria-label={`Open ${p.title}`}>
+            {thumbOf(p)
+              ? <img src={thumbOf(p)} alt={p.title} loading="lazy" draggable="false" />
+              : <span style={`display:block;aspect-ratio:3/4;border-radius:3px;background:radial-gradient(130% 130% at 30% 20%, ${p.color}, #0d0d10 80%)`}></span>}
+            <span class="see-more">SEE MORE</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  </div>
+
+  <div class="foot-title" id="footTitle">
+    <span class="foot-name" id="footName"></span>
+    <span class="foot-meta" id="footMeta"></span>
+  </div>
+
+  <section class="slide" id="slide" aria-label="Selected work, list view">
+    <div class="slide-inner">
+      {slideProjects.map(({ project: p, index: i }) => (
+        <button class="slide-item" type="button" data-i={i} data-slug={p.slug} aria-label={`Open ${p.title}`}>
+          <div class="slide-media">
+            {thumbOf(p)
+              ? <img src={thumbOf(p)} alt={p.title} loading="lazy" />
+              : <span style={`display:block;aspect-ratio:16/10;background:radial-gradient(130% 130% at 30% 20%, ${p.color}, #0d0d10 80%)`}></span>}
+          </div>
+          <div class="slide-meta"><span class="slide-title">{p.title}</span><span class="slide-year">{p.year}</span></div>
+          {p.intro?.body && <p class="slide-body">{p.intro.body}</p>}
+        </button>
+      ))}
+    </div>
+  </section>
+
+  <div class="hint" id="hint">move the cursor to look &middot; click to open</div>
+
+  <div class="about-backdrop" id="aboutBackdrop" aria-hidden="true">
+    <section class="about-modal" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+      <div class="modal-bar"><span class="m-title" id="aboutTitle">About</span>
+        <button class="close" id="aboutClose" aria-label="Close">&#215;</button></div>
+      <div class="about-body" id="aboutBody"></div>
+    </section>
+  </div>
+
+  <div class="backdrop" id="backdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-bar">
+        <span class="modal-copy">
+          <span class="m-title"><span id="mTitle"></span><span class="m-cat" id="mCat"></span></span>
+          <span class="m-desc" id="mDesc"></span>
+        </span>
+        <button class="close" id="mClose" aria-label="Close">&#215;</button>
+      </div>
+      <div class="modal-body" id="mBody"></div>
+    </div>
+  </div>
+
+  <script define:vars={{ projects }}>
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const flow = document.getElementById("flow");
+    const canvas = document.getElementById("canvas");
+    const nodes = [...canvas.querySelectorAll(".node")];
+    const footTitle = document.getElementById("footTitle");
+    const footName = document.getElementById("footName");
+    const footMeta = document.getElementById("footMeta");
+    let mode = "flow", modalOpen = false;
+    let isEntering = false;
+
+    let tx = 0, ty = 0, cx = 0, cy = 0;
+    let dragging = false, dragX = 0, dragY = 0, startTx = 0, startTy = 0, moved = 0;
+
+    function panBounds() {
+      const extraX = Math.max(120, window.innerWidth * 0.14);
+      const extraY = Math.max(90, window.innerHeight * 0.14);
+      return {
+        x: Math.max(0, (canvas.offsetWidth - flow.clientWidth) / 2 + extraX),
+        y: Math.max(0, (canvas.offsetHeight - flow.clientHeight) / 2 + extraY),
+      };
+    }
+
+    function setPanTarget(x, y) {
+      const bounds = panBounds();
+      tx = clamp(x, -bounds.x, bounds.x);
+      ty = clamp(y, -bounds.y, bounds.y);
+    }
+
+    window.addEventListener("pointermove", (e) => {
+      if (mode !== "flow" || modalOpen) return;
+      if (dragging) {
+        const dx = e.clientX - dragX;
+        const dy = e.clientY - dragY;
+        moved = Math.max(moved, Math.hypot(dx, dy));
+        setPanTarget(startTx + dx, startTy + dy);
+        return;
+      }
+      const nx = e.clientX / window.innerWidth - 0.5;
+      const ny = e.clientY / window.innerHeight - 0.5;
+      const bounds = panBounds();
+      setPanTarget(-nx * bounds.x * 0.98, -ny * bounds.y * 0.96);
+    });
+    flow.addEventListener("pointerdown", (e) => {
+      if (mode !== "flow" || modalOpen) return;
+      if (e.target.closest?.(".node")) return;
+      dragging = true;
+      dragX = e.clientX;
+      dragY = e.clientY;
+      startTx = tx;
+      startTy = ty;
+      moved = 0;
+      flow.classList.add("dragging");
+      flow.setPointerCapture?.(e.pointerId);
+    });
+    window.addEventListener("pointerup", () => {
+      dragging = false;
+      flow.classList.remove("dragging");
+    });
+    window.addEventListener("wheel", (e) => {
+      if (mode !== "flow" || modalOpen) return;
+      e.preventDefault();
+      setPanTarget(tx - e.deltaX * 0.75 - e.deltaY * 0.28, ty - e.deltaY * 0.55);
+    }, { passive: false });
+    function tick() {
+      cx += (tx - cx) * 0.085; cy += (ty - cy) * 0.085;
+      canvas.style.transform = `translate(calc(-50% + ${cx.toFixed(2)}px), calc(-50% + ${cy.toFixed(2)}px))`;
+      requestAnimationFrame(tick);
+    }
+
+    function moveSeeMore(node, e) {
+      if (!e || typeof e.clientX !== "number" || typeof e.clientY !== "number") {
+        node.style.setProperty("--see-x", "50%");
+        node.style.setProperty("--see-y", "50%");
+        return;
+      }
+      const rect = node.getBoundingClientRect();
+      const x = clamp(((e.clientX - rect.left) / rect.width) * 100, -32, 132);
+      const y = clamp(((e.clientY - rect.top) / rect.height) * 100, -32, 132);
+      node.style.setProperty("--see-x", `${x.toFixed(1)}%`);
+      node.style.setProperty("--see-y", `${y.toFixed(1)}%`);
+    }
+
+    nodes.forEach((node) => {
+      const p = projects[+node.dataset.i];
+      const showProject = (e) => {
+        moveSeeMore(node, e);
+        node.classList.add("is-hover");
+        footName.textContent = p.title;
+        footMeta.textContent = `${p.year} · ${p.category}`;
+        const scale = clamp(1 - Math.max(0, p.title.length - 15) * 0.026, 0.55, 1);
+        const sizeVw = clamp(8.8 * scale, 4.8, 8.8);
+        const sizeRem = clamp(9.2 * scale, 4.9, 9.2);
+        footName.style.fontSize = `clamp(2rem, ${sizeVw.toFixed(2)}vw, ${sizeRem.toFixed(2)}rem)`;
+        footTitle.classList.add("show"); document.body.classList.add("hovering");
+      };
+      const hideProject = () => {
+        node.classList.remove("is-hover");
+        footTitle.classList.remove("show"); document.body.classList.remove("hovering");
+        node.style.removeProperty("--see-x");
+        node.style.removeProperty("--see-y");
+      };
+      node.addEventListener("pointermove", (e) => moveSeeMore(node, e));
+      node.addEventListener("pointerenter", showProject);
+      node.addEventListener("focus", showProject);
+      node.addEventListener("pointerdown", () => { moved = 0; });
+      node.addEventListener("pointerleave", hideProject);
+      node.addEventListener("blur", hideProject);
+      node.addEventListener("click", () => { if (moved < 8) enterDetail(+node.dataset.i, node); });
+    });
+    document.querySelectorAll(".slide-item").forEach((item) =>
+      item.addEventListener("click", () => goProject(+item.dataset.i)));
+
+    const modeButtons = [...document.querySelectorAll("[data-mode]")];
+    function setMode(m) {
+      mode = m; document.body.dataset.mode = m;
+      modeButtons.forEach((b) => {
+        const on = b.dataset.mode === m;
+        b.classList.toggle("active", on); b.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+      if (m !== "flow") { footTitle.classList.remove("show"); document.body.classList.remove("hovering"); }
+    }
+    modeButtons.forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+    document.body.dataset.mode = "flow";
+
+    const backdrop = document.getElementById("backdrop");
+    const modal = backdrop.querySelector(".modal");
+    const mBody = document.getElementById("mBody");
+    function goProject(i) {
+      window.location.href = `/work/${projects[i].slug}/`;
+    }
+
+    function enterDetail(i, sourceNode) {
+      if (isEntering || modalOpen) return;
+      isEntering = true;
+      modalOpen = true;
+      dragging = false;
+      flow.classList.remove("dragging");
+      tx = cx;
+      ty = cy;
+      const p = projects[i];
+      footName.textContent = p.title;
+      footMeta.textContent = `${p.year} · ${p.category}`;
+      const scale = clamp(1 - Math.max(0, p.title.length - 15) * 0.026, 0.55, 1);
+      const sizeVw = clamp(9.2 * scale, 5.1, 9.2);
+      const sizeRem = clamp(9.8 * scale, 5.2, 9.8);
+      footName.style.fontSize = `clamp(2rem, ${sizeVw.toFixed(2)}vw, ${sizeRem.toFixed(2)}rem)`;
+      footTitle.classList.add("show", "is-enter-title");
+      document.body.classList.remove("hovering");
+
+      const targetX = window.innerWidth / 2;
+      const targetY = window.innerHeight * 0.46;
+      nodes.forEach((node) => {
+        const rect = node.getBoundingClientRect();
+        const nodeX = rect.left + rect.width / 2;
+        const nodeY = rect.top + rect.height / 2;
+        const selected = node === sourceNode;
+        node.classList.toggle("is-enter-selected", selected);
+        node.classList.remove("is-hover");
+        node.style.setProperty("--enter-x", `${(targetX - nodeX).toFixed(2)}px`);
+        node.style.setProperty("--enter-y", `${(targetY - nodeY).toFixed(2)}px`);
+        node.style.setProperty("--enter-scale", selected ? "1.12" : "0.54");
+        node.style.setProperty("--enter-opacity", selected ? "1" : "0.12");
+      });
+
+      document.body.classList.add("detail-entering");
+      window.setTimeout(() => {
+        document.body.classList.remove("detail-entering");
+        nodes.forEach((node) => {
+          node.classList.remove("is-enter-selected");
+          node.style.removeProperty("--enter-x");
+          node.style.removeProperty("--enter-y");
+          node.style.removeProperty("--enter-scale");
+        node.style.removeProperty("--enter-opacity");
+        node.style.removeProperty("--see-x");
+        node.style.removeProperty("--see-y");
+      });
+        goProject(i);
+      }, 640);
+    }
+
+    function openModal(i) {
+      nodes.forEach((n) => n.classList.remove("is-hover"));
+      footTitle.classList.remove("show"); document.body.classList.remove("hovering");
+      const p = projects[i];
+      document.getElementById("mTitle").textContent = p.intro?.heading ?? p.title;
+      document.getElementById("mCat").textContent = p.category;
+      const mDesc = document.getElementById("mDesc");
+      mDesc.textContent = p.intro?.body ?? ""; mDesc.hidden = !p.intro;
+      modal.classList.toggle("is-embed", Boolean(p.embedUrl));
+      modal.classList.toggle("is-flush", Boolean(p.flushImages));
+      modal.style.setProperty("--modal-bg", p.reveal?.bg ?? "var(--bg)");
+      modal.style.setProperty("--modal-ink", p.reveal?.ink ?? "var(--ink)");
+      modal.style.setProperty("--modal-muted", p.reveal?.muted ?? "var(--ink-2)");
+      let html = "";
+      if (p.embedUrl) {
+        html += `<div class="embed-shell" data-embed-shell style="${p.embedHeight ? `--embed-height:${p.embedHeight}` : ""}">
+          <iframe class="project-embed" src="${p.embedUrl}" title="${p.title} live experience" allow="fullscreen; accelerometer; gyroscope" loading="eager"></iframe></div>`;
+      }
+      if (p.images && p.images.length) {
+        html += p.images.map((item, idx) => {
+          if (typeof item === "object" && item.type === "youtube") {
+            return `<span class="imgwrap"><span class="modal-media-frame modal-video-frame"><iframe class="modal-video" src="${item.url}" title="${item.title ?? `${p.title} video ${idx + 1}`}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></span></span>`;
+          }
+          return `<span class="imgwrap"><span class="modal-media-frame"><img src="${item}" alt="${p.title} image ${idx + 1}" loading="lazy"></span></span>`;
+        }).join("");
+      }
+      if (!p.embedUrl && !(p.images && p.images.length)) {
+        html += `<div class="m-empty"><div class="ph" style="background:radial-gradient(130% 130% at 30% 20%, ${p.color}, #0d0d10 80%)"></div><p>Case study coming soon</p></div>`;
+      }
+      if (p.links && p.links.length) {
+        html += `<div class="m-links">` + p.links.map((l) => `<a href="${l.url}" target="_blank" rel="noopener">${l.label} &#8599;</a>`).join("") + `</div>`;
+      }
+      mBody.innerHTML = html;
+      mBody.scrollTop = 0;
+      backdrop.classList.add("open"); backdrop.setAttribute("aria-hidden", "false");
+      document.body.classList.add("modal-open"); modalOpen = true;
+    }
+    window.addEventListener("message", (event) => {
+      const data = event.data;
+      if (!data || data.type !== "portfolio:embed-height") return;
+      const iframe = [...document.querySelectorAll(".project-embed")].find((f) => f.contentWindow === event.source);
+      if (!iframe) return;
+      iframe.closest("[data-embed-shell]")?.style.setProperty("--embed-height", `${Math.ceil(clamp(Number(data.height) || 0, 420, 12000))}px`);
+    });
+    function closeModal() {
+      backdrop.classList.remove("open"); backdrop.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("modal-open"); modal.classList.remove("is-embed", "is-flush");
+      mBody.innerHTML = ""; modalOpen = false;
+    }
+    document.getElementById("mClose").addEventListener("click", closeModal);
+    backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeModal(); });
+
+    const aboutBackdrop = document.getElementById("aboutBackdrop");
+    const aboutTitle = document.getElementById("aboutTitle");
+    const aboutBody = document.getElementById("aboutBody");
+    const panels = {
+      about: { title: "About", html: `<p class="about-kicker">Interaction &amp; Experience Design</p><h2>Ji Su Kim</h2><p>Interaction designer and prototyper with a background in experience design and fashion, recently graduated from MA Information Experience Design at the Royal College of Art. Builds workflow-driven digital and physical&ndash;digital prototypes across Figma, AR, real-time data visualisation, Arduino and browser-based interfaces. Interested in turning complex systems into clear, usable tools through rapid prototyping and interactive design.</p>` },
+    };
+    function openInfo(type) {
+      const panel = panels[type] ?? panels.about;
+      aboutTitle.textContent = panel.title; aboutBody.innerHTML = panel.html;
+      aboutBackdrop.classList.add("open"); aboutBackdrop.setAttribute("aria-hidden", "false");
+      document.body.classList.add("modal-open"); modalOpen = true;
+    }
+    function closeInfo() {
+      aboutBackdrop.classList.remove("open"); aboutBackdrop.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("modal-open"); modalOpen = false;
+    }
+    document.getElementById("aboutBtn").addEventListener("click", () => openInfo("about"));
+    document.getElementById("aboutClose").addEventListener("click", closeInfo);
+    aboutBackdrop.addEventListener("click", (e) => { if (e.target === aboutBackdrop) closeInfo(); });
+    window.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape" || !modalOpen) return;
+      if (aboutBackdrop.classList.contains("open")) closeInfo(); else closeModal();
+    });
+
+    tick();
+  </script>
+</Layout>
