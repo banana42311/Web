@@ -17,12 +17,12 @@ const slideProjects = slideOrder
   })
   .filter(Boolean);
 const layout = [
-  { x: 11, y: 31, w: 25 },
-  { x: 39, y: 8,  w: 18.5 },
-  { x: 74, y: 49, w: 19 },
-  { x: 57, y: 18, w: 21 },
-  { x: 23, y: 64, w: 18 },
-  { x: 42, y: 61, w: 26 },
+  { x: 7,    y: 33, w: 21.5 },
+  { x: 40.5, y: 13, w: 16 },
+  { x: 72,   y: 32, w: 16 },
+  { x: 66,   y: 62, w: 18.5 },
+  { x: 23,   y: 65, w: 15.5 },
+  { x: 41.5, y: 58, w: 21 },
 ];
 ---
 <Layout title="Ji Su Kim — Interaction & Experience Design">
@@ -34,7 +34,7 @@ const layout = [
     </nav>
     <nav class="nav-links" aria-label="Info">
       <button type="button" id="aboutBtn">About</button>
-      <a href="mailto:doma.k.soo@gmail.com" id="contactBtn">Contact</a>
+      <button type="button" id="contactBtn" data-contact-open>Contact</button>
     </nav>
   </header>
 
@@ -106,6 +106,7 @@ const layout = [
     const footName = document.getElementById("footName");
     const footMeta = document.getElementById("footMeta");
     let mode = "flow", modalOpen = false;
+    const isAnyModalOpen = () => modalOpen || document.body.classList.contains("modal-open");
     let isEntering = false;
 
     let tx = 0, ty = 0, cx = 0, cy = 0;
@@ -127,7 +128,7 @@ const layout = [
     }
 
     window.addEventListener("pointermove", (e) => {
-      if (mode !== "flow" || modalOpen) return;
+      if (mode !== "flow" || isAnyModalOpen()) return;
       if (dragging) {
         const dx = e.clientX - dragX;
         const dy = e.clientY - dragY;
@@ -141,7 +142,7 @@ const layout = [
       setPanTarget(-nx * bounds.x * 0.98, -ny * bounds.y * 0.96);
     });
     flow.addEventListener("pointerdown", (e) => {
-      if (mode !== "flow" || modalOpen) return;
+      if (mode !== "flow" || isAnyModalOpen()) return;
       if (e.target.closest?.(".node")) return;
       dragging = true;
       dragX = e.clientX;
@@ -157,7 +158,7 @@ const layout = [
       flow.classList.remove("dragging");
     });
     window.addEventListener("wheel", (e) => {
-      if (mode !== "flow" || modalOpen) return;
+      if (mode !== "flow" || isAnyModalOpen()) return;
       e.preventDefault();
       setPanTarget(tx - e.deltaX * 0.75 - e.deltaY * 0.28, ty - e.deltaY * 0.55);
     }, { passive: false });
@@ -188,8 +189,8 @@ const layout = [
         footName.textContent = p.title;
         footMeta.textContent = `${p.year} · ${p.category}`;
         const scale = clamp(1 - Math.max(0, p.title.length - 15) * 0.026, 0.55, 1);
-        const sizeVw = clamp(8.8 * scale, 4.8, 8.8);
-        const sizeRem = clamp(9.2 * scale, 4.9, 9.2);
+        const sizeVw = clamp(7.92 * scale, 4.32, 7.92);
+        const sizeRem = clamp(8.28 * scale, 4.41, 8.28);
         footName.style.fontSize = `clamp(2rem, ${sizeVw.toFixed(2)}vw, ${sizeRem.toFixed(2)}rem)`;
         footTitle.classList.add("show"); document.body.classList.add("hovering");
       };
@@ -230,7 +231,7 @@ const layout = [
     }
 
     function enterDetail(i, sourceNode) {
-      if (isEntering || modalOpen) return;
+      if (isEntering || isAnyModalOpen()) return;
       isEntering = true;
       modalOpen = true;
       dragging = false;
