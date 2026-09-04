@@ -27,6 +27,68 @@ const bciImages = Array.from({ length: 17 }, (_, i) => {
   return bciEmbeds[number] ?? `/projects/bci/bci_${String(number).padStart(2, "0")}.jpg`;
 });
 
+const withLanguageFolder = (items, folder) =>
+  items.map((item) => {
+    if (typeof item !== "string") return item;
+    const lastSlash = item.lastIndexOf("/");
+    return `${item.slice(0, lastSlash)}/${folder}${item.slice(lastSlash)}`;
+  });
+
+const localizedSlides = (items, koreanFolder = "kr") => ({
+  images: withLanguageFolder(items, "en"),
+  imagesByLang: {
+    ko: withLanguageFolder(items, koreanFolder),
+    en: withLanguageFolder(items, "en"),
+  },
+});
+
+const situatedThresholdsSlides = [
+  "/projects/SituatedThresholds/Slide 16_9 - 1.png",
+  "/projects/SituatedThresholds/Slide 16_9 - 2.png",
+  "/projects/SituatedThresholds/Slide 16_9 - 3.png",
+  "/projects/SituatedThresholds/Slide 16_9 - 4.png",
+  "/projects/SituatedThresholds/Slide 16_9 - 5.png",
+  "/projects/SituatedThresholds/Slide 16_9 - 6.png",
+  "/projects/SituatedThresholds/Slide 16_9 - 7.png",
+  "/projects/SituatedThresholds/Slide 16_9 - 8.png",
+  "/projects/SituatedThresholds/Slide 16_9 - 9.png",
+  "/projects/SituatedThresholds/Slide 16_9 - 10.png",
+];
+
+const oakTreeSlides = [
+  "/projects/Oak_Tree/slide1.png",
+  "/projects/Oak_Tree/Slide 16_9 - 2.png",
+  "/projects/Oak_Tree/Slide 16_9 - 3.png",
+  "/projects/Oak_Tree/Slide 16_9 - 4.png",
+  "/projects/Oak_Tree/Slide 16_9 - 5.png",
+  "/projects/Oak_Tree/Slide 16_9 - 6.png",
+  "/projects/Oak_Tree/Slide 16_9 - 7.png",
+  "/projects/Oak_Tree/Slide 16_9 - 8.png",
+  "/projects/Oak_Tree/Slide 16_9 - 9.png",
+  "/projects/Oak_Tree/Slide 16_9 - 10.png",
+  "/projects/Oak_Tree/Slide 16_9 - 11.png",
+  "/projects/Oak_Tree/Slide 16_9 - 12.png",
+  "/projects/Oak_Tree/Slide 16_9 - 13.png",
+];
+
+const linkoSlides = [
+  "/projects/Linko/Slide 16_9 - 1.png",
+  "/projects/Linko/Slide 16_9 - 2.png",
+  "/projects/Linko/Slide 16_9 - 3.png",
+  "/projects/Linko/Slide 16_9 - 4.png",
+  "/projects/Linko/Slide 16_9 - 5.png",
+  "/projects/Linko/Slide 16_9 - 6.png",
+  "/projects/Linko/Slide 16_9 - 8.png",
+  "/projects/Linko/Slide 16_9 - 9.png",
+  "/projects/Linko/Slide 16_9 - 11.png",
+  {
+    type: "youtube",
+    url: "https://www.youtube.com/embed/xi-3Q9whphY",
+    title: "Linko prototype video",
+  },
+  "/projects/Linko/Slide 16_9 - 12.png",
+];
+
 export const projects = [
   {
     slug: "situated-thresholds",
@@ -45,18 +107,7 @@ export const projects = [
       body: "Situated Thresholds is a data-visualisation installation that traces where digital inequality begins. Mapping London's digital infrastructure against access to digital healthcare, it turns a gallery floor into a pressure-sensitive map — so that standing in a place, rather than clicking, becomes the way to read how access is unevenly distributed across the city.",
     },
     thumb: "/projects/SituatedThresholds/DSC09717.jpg",
-    images: [
-      "/projects/SituatedThresholds/Slide 16_9 - 1.png",
-      "/projects/SituatedThresholds/Slide 16_9 - 2.png",
-      "/projects/SituatedThresholds/Slide 16_9 - 3.png",
-      "/projects/SituatedThresholds/Slide 16_9 - 4.png",
-      "/projects/SituatedThresholds/Slide 16_9 - 5.png",
-      "/projects/SituatedThresholds/Slide 16_9 - 6.png",
-      "/projects/SituatedThresholds/Slide 16_9 - 7.png",
-      "/projects/SituatedThresholds/Slide 16_9 - 8.png",
-      "/projects/SituatedThresholds/Slide 16_9 - 9.png",
-      "/projects/SituatedThresholds/Slide 16_9 - 10.png",
-    ],
+    ...localizedSlides(situatedThresholdsSlides),
     links: [
       { label: "Open live experience", url: "https://banana42311.github.io/situated_thresholds/" },
     ],
@@ -80,21 +131,7 @@ export const projects = [
       body: "Oak Tree is a live environmental visualisation that lets a tree register the air around it. Built from a 3D scan of the Horniman Museum's oldest oak, it maps real-time air-quality data onto the tree so that it visibly \"breathes\" with the changing state of its environment.",
     },
     thumb: "/projects/Oak_Tree/Thumb.png",
-    images: [
-      "/projects/Oak_Tree/slide1.png",
-      "/projects/Oak_Tree/Slide 16_9 - 2.png",
-      "/projects/Oak_Tree/Slide 16_9 - 3.png",
-      "/projects/Oak_Tree/Slide 16_9 - 4.png",
-      "/projects/Oak_Tree/Slide 16_9 - 5.png",
-      "/projects/Oak_Tree/Slide 16_9 - 6.png",
-      "/projects/Oak_Tree/Slide 16_9 - 7.png",
-      "/projects/Oak_Tree/Slide 16_9 - 8.png",
-      "/projects/Oak_Tree/Slide 16_9 - 9.png",
-      "/projects/Oak_Tree/Slide 16_9 - 10.png",
-      "/projects/Oak_Tree/Slide 16_9 - 11.png",
-      "/projects/Oak_Tree/Slide 16_9 - 12.png",
-      "/projects/Oak_Tree/Slide 16_9 - 13.png",
-    ],
+    ...localizedSlides(oakTreeSlides),
     links: [
       { label: "Open live experience", url: "https://banana42311.github.io/OakTree/" },
     ],
@@ -142,23 +179,7 @@ export const projects = [
       body: "Linko is a social community platform designed to reduce the burden of searching and choosing. It suggests activities suited to each user’s situation and supports them in taking the next step toward participation. By turning small acts of individual participation into lasting relationships, Linko aims to help revive local communities and third places.",
     },
     thumb: "/projects/Linko/LinkoLogo.png",
-    images: [
-      "/projects/Linko/Slide 16_9 - 1.png",
-      "/projects/Linko/Slide 16_9 - 2.png",
-      "/projects/Linko/Slide 16_9 - 3.png",
-      "/projects/Linko/Slide 16_9 - 4.png",
-      "/projects/Linko/Slide 16_9 - 5.png",
-      "/projects/Linko/Slide 16_9 - 6.png",
-      "/projects/Linko/Slide 16_9 - 8.png",
-      "/projects/Linko/Slide 16_9 - 9.png",
-      "/projects/Linko/Slide 16_9 - 11.png",
-      {
-        type: "youtube",
-        url: "https://www.youtube.com/embed/xi-3Q9whphY",
-        title: "Linko prototype video",
-      },
-      "/projects/Linko/Slide 16_9 - 12.png",
-    ],
+    ...localizedSlides(linkoSlides),
     links: [],
   },
   {

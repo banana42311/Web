@@ -91,7 +91,13 @@ const layout = [
           <span class="m-title"><span id="mTitle"></span><span class="m-cat" id="mCat"></span></span>
           <span class="m-desc" id="mDesc"></span>
         </span>
-        <button class="close" id="mClose" aria-label="Close">&#215;</button>
+        <span class="modal-actions">
+          <span class="lang-toggle" id="mLangToggle" aria-label="Project language" hidden>
+            <button type="button" data-lang="ko">KO</button>
+            <button type="button" data-lang="en" class="active">EN</button>
+          </span>
+          <button class="close" id="mClose" aria-label="Close">&#215;</button>
+        </span>
       </div>
       <div class="modal-body" id="mBody"></div>
     </div>
@@ -226,6 +232,9 @@ const layout = [
     const backdrop = document.getElementById("backdrop");
     const modal = backdrop.querySelector(".modal");
     const mBody = document.getElementById("mBody");
+    const mLangToggle = document.getElementById("mLangToggle");
+    let activeModalProject = null;
+    let activeModalLang = "en";
     function goProject(i) {
       window.location.href = `/work/${projects[i].slug}/`;
     }
@@ -279,10 +288,48 @@ const layout = [
       }, 640);
     }
 
+    function hasLanguageSlides(p) {
+      return Boolean(p.imagesByLang?.ko?.length && p.imagesByLang?.en?.length);
+    }
+
+    function setModalLangButtons(lang) {
+      mLangToggle.querySelectorAll("[data-lang]").forEach((button) => {
+        const active = button.dataset.lang === lang;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+    }
+
+    function renderModalContent(p, lang = "en") {
+      const images = p.imagesByLang?.[lang] ?? p.images ?? [];
+      let html = "";
+      if (p.embedUrl) {
+        html += `<div class="embed-shell" data-embed-shell style="${p.embedHeight ? `--embed-height:${p.embedHeight}` : ""}">
+          <iframe class="project-embed" src="${p.embedUrl}" title="${p.title} live experience" allow="fullscreen; accelerometer; gyroscope" loading="eager"></iframe></div>`;
+      }
+      if (images.length) {
+        html += images.map((item, idx) => {
+          if (typeof item === "object" && item.type === "youtube") {
+            return `<span class="imgwrap"><span class="modal-media-frame modal-video-frame"><iframe class="modal-video" src="${item.url}" title="${item.title ?? `${p.title} video ${idx + 1}`}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></span></span>`;
+          }
+          return `<span class="imgwrap"><span class="modal-media-frame"><img src="${item}" alt="${p.title} image ${idx + 1}" loading="lazy"></span></span>`;
+        }).join("");
+      }
+      if (!p.embedUrl && !images.length) {
+        html += `<div class="m-empty"><div class="ph" style="background:radial-gradient(130% 130% at 30% 20%, ${p.color}, #0d0d10 80%)"></div><p>Case study coming soon</p></div>`;
+      }
+      if (p.links && p.links.length) {
+        html += `<div class="m-links">` + p.links.map((l) => `<a href="${l.url}" target="_blank" rel="noopener">${l.label} &#8599;</a>`).join("") + `</div>`;
+      }
+      return html;
+    }
+
     function openModal(i) {
       nodes.forEach((n) => n.classList.remove("is-hover"));
       footTitle.classList.remove("show"); document.body.classList.remove("hovering");
       const p = projects[i];
+      activeModalProject = p;
+      activeModalLang = "en";
       document.getElementById("mTitle").textContent = p.intro?.heading ?? p.title;
       document.getElementById("mCat").textContent = p.category;
       const mDesc = document.getElementById("mDesc");
@@ -292,30 +339,22 @@ const layout = [
       modal.style.setProperty("--modal-bg", p.reveal?.bg ?? "var(--bg)");
       modal.style.setProperty("--modal-ink", p.reveal?.ink ?? "var(--ink)");
       modal.style.setProperty("--modal-muted", p.reveal?.muted ?? "var(--ink-2)");
-      let html = "";
-      if (p.embedUrl) {
-        html += `<div class="embed-shell" data-embed-shell style="${p.embedHeight ? `--embed-height:${p.embedHeight}` : ""}">
-          <iframe class="project-embed" src="${p.embedUrl}" title="${p.title} live experience" allow="fullscreen; accelerometer; gyroscope" loading="eager"></iframe></div>`;
-      }
-      if (p.images && p.images.length) {
-        html += p.images.map((item, idx) => {
-          if (typeof item === "object" && item.type === "youtube") {
-            return `<span class="imgwrap"><span class="modal-media-frame modal-video-frame"><iframe class="modal-video" src="${item.url}" title="${item.title ?? `${p.title} video ${idx + 1}`}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></span></span>`;
-          }
-          return `<span class="imgwrap"><span class="modal-media-frame"><img src="${item}" alt="${p.title} image ${idx + 1}" loading="lazy"></span></span>`;
-        }).join("");
-      }
-      if (!p.embedUrl && !(p.images && p.images.length)) {
-        html += `<div class="m-empty"><div class="ph" style="background:radial-gradient(130% 130% at 30% 20%, ${p.color}, #0d0d10 80%)"></div><p>Case study coming soon</p></div>`;
-      }
-      if (p.links && p.links.length) {
-        html += `<div class="m-links">` + p.links.map((l) => `<a href="${l.url}" target="_blank" rel="noopener">${l.label} &#8599;</a>`).join("") + `</div>`;
-      }
-      mBody.innerHTML = html;
+      mLangToggle.hidden = !hasLanguageSlides(p);
+      setModalLangButtons(activeModalLang);
+      mBody.innerHTML = renderModalContent(p, activeModalLang);
       mBody.scrollTop = 0;
       backdrop.classList.add("open"); backdrop.setAttribute("aria-hidden", "false");
       document.body.classList.add("modal-open"); modalOpen = true;
     }
+    mLangToggle.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-lang]");
+      if (!button || !activeModalProject) return;
+      activeModalLang = button.dataset.lang;
+      setModalLangButtons(activeModalLang);
+      const scrollTop = mBody.scrollTop;
+      mBody.innerHTML = renderModalContent(activeModalProject, activeModalLang);
+      mBody.scrollTop = scrollTop;
+    });
     window.addEventListener("message", (event) => {
       const data = event.data;
       if (!data || data.type !== "portfolio:embed-height") return;

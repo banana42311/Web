@@ -15,7 +15,8 @@ const description = project.intro?.body ?? "";
 const modalBg = project.reveal?.bg ?? "var(--bg)";
 const modalInk = project.reveal?.ink ?? "var(--ink)";
 const modalMuted = project.reveal?.muted ?? "var(--ink-2)";
-const imageItems = project.images ?? [];
+const hasLanguageSlides = Boolean(project.imagesByLang?.ko?.length && project.imagesByLang?.en?.length);
+const imageItems = hasLanguageSlides ? project.imagesByLang.en : project.images ?? [];
 const embedItem = project.embedUrl
   ? {
       type: "embed",
@@ -41,41 +42,51 @@ const mediaItems =
           <span class="m-title"><span>{heading}</span><span class="m-cat">{project.category}</span></span>
           {description && <span class="m-desc">{description}</span>}
         </span>
-        <button class="project-contact" type="button" data-contact-open>Contact</button>
+        <span class="modal-actions">
+          {hasLanguageSlides && (
+            <span class="lang-toggle" id="projectLangToggle" aria-label="Project language">
+              <button type="button" data-lang="ko" aria-pressed="false">KO</button>
+              <button type="button" data-lang="en" class="active" aria-pressed="true">EN</button>
+            </span>
+          )}
+          <button class="project-contact" type="button" data-contact-open>Contact</button>
+        </span>
       </header>
       <a class="project-close" href="/" aria-label="Back to selected work"><span aria-hidden="true">&times;</span></a>
 
       <div class="modal-body project-page-body">
-        {mediaItems.map((item, idx) => (
-          typeof item === "object" && item.type === "embed"
-            ? (
-              <div class="embed-shell" data-embed-shell style={item.height ? `--embed-height:${item.height}` : ""}>
-                <iframe class="project-embed" src={item.url} title={item.title} allow="fullscreen; accelerometer; gyroscope" loading="eager"></iframe>
-              </div>
-            )
-            : typeof item === "object" && item.type === "youtube"
-            ? (
-              <span class="imgwrap">
-                <span class="modal-media-frame modal-video-frame">
-                  <iframe
-                    class="modal-video"
-                    src={item.url}
-                    title={item.title ?? `${project.title} video ${idx + 1}`}
-                    loading="lazy"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowfullscreen
-                  ></iframe>
+        <div id="projectMediaList">
+          {mediaItems.map((item, idx) => (
+            typeof item === "object" && item.type === "embed"
+              ? (
+                <div class="embed-shell" data-embed-shell style={item.height ? `--embed-height:${item.height}` : ""}>
+                  <iframe class="project-embed" src={item.url} title={item.title} allow="fullscreen; accelerometer; gyroscope" loading="eager"></iframe>
+                </div>
+              )
+              : typeof item === "object" && item.type === "youtube"
+              ? (
+                <span class="imgwrap">
+                  <span class="modal-media-frame modal-video-frame">
+                    <iframe
+                      class="modal-video"
+                      src={item.url}
+                      title={item.title ?? `${project.title} video ${idx + 1}`}
+                      loading="lazy"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowfullscreen
+                    ></iframe>
+                  </span>
                 </span>
-              </span>
-            )
-            : (
-              <span class="imgwrap">
-                <span class="modal-media-frame">
-                  <img src={item} alt={`${project.title} image ${idx + 1}`} loading="lazy" />
+              )
+              : (
+                <span class="imgwrap">
+                  <span class="modal-media-frame">
+                    <img src={item} alt={`${project.title} image ${idx + 1}`} loading="lazy" />
+                  </span>
                 </span>
-              </span>
-            )
-        ))}
+              )
+          ))}
+        </div>
 
         {!mediaItems.length && (
           <div class="m-empty">
@@ -95,8 +106,63 @@ const mediaItems =
     </article>
   </main>
 
-  <script>
+  <script define:vars={{ project }}>
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const mediaList = document.getElementById("projectMediaList");
+    const langToggle = document.getElementById("projectLangToggle");
+
+    function imagesFor(lang) {
+      return project.imagesByLang?.[lang] ?? project.images ?? [];
+    }
+
+    function mediaItemsFor(lang) {
+      const imageItems = imagesFor(lang);
+      const embedItem = project.embedUrl
+        ? {
+            type: "embed",
+            url: project.embedUrl,
+            height: project.embedHeight,
+            title: `${project.title} live experience`,
+          }
+        : null;
+
+      return embedItem && project.embedPlacement === "after-first-image" && imageItems.length
+        ? [imageItems[0], embedItem, ...imageItems.slice(1)]
+        : [...(embedItem ? [embedItem] : []), ...imageItems];
+    }
+
+    function renderMediaItem(item, idx) {
+      if (typeof item === "object" && item.type === "embed") {
+        return `<div class="embed-shell" data-embed-shell style="${item.height ? `--embed-height:${item.height}` : ""}">
+          <iframe class="project-embed" src="${item.url}" title="${item.title}" allow="fullscreen; accelerometer; gyroscope" loading="eager"></iframe>
+        </div>`;
+      }
+
+      if (typeof item === "object" && item.type === "youtube") {
+        return `<span class="imgwrap"><span class="modal-media-frame modal-video-frame"><iframe class="modal-video" src="${item.url}" title="${item.title ?? `${project.title} video ${idx + 1}`}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></span></span>`;
+      }
+
+      return `<span class="imgwrap"><span class="modal-media-frame"><img src="${item}" alt="${project.title} image ${idx + 1}" loading="lazy"></span></span>`;
+    }
+
+    function setLanguage(lang) {
+      if (!mediaList) return;
+      langToggle?.querySelectorAll("[data-lang]").forEach((button) => {
+        const active = button.dataset.lang === lang;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+
+      const scrollTop = document.querySelector(".project-shell")?.scrollTop ?? 0;
+      mediaList.innerHTML = mediaItemsFor(lang).map(renderMediaItem).join("");
+      document.querySelector(".project-shell")?.scrollTo({ top: scrollTop });
+    }
+
+    langToggle?.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-lang]");
+      if (!button) return;
+      setLanguage(button.dataset.lang);
+    });
 
     window.addEventListener("message", (event) => {
       const data = event.data;
