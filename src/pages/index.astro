@@ -21,15 +21,15 @@ const slideProjects = slideOrder
   .filter(Boolean);
 // Flow positions by slug, centre outward: Oak Tree → … → Linko, DODO (outermost)
 const layoutBySlug = {
-  "oak-tree":                    { x: 43.2, y: 39.2, w: 15 },
-  "situated-thresholds":         { x: 21.5, y: 53,   w: 14 },
-  "fox-in-london":               { x: 59.2, y: 30.4, w: 13 },
-  "tubecast":                    { x: 59.8, y: 62.5, w: 13 },
-  "binary-conversion-implement": { x: 25.2, y: 20,   w: 14 },
-  "no-more-algorithm":           { x: 39.2, y: 72,   w: 11 },
-  "enigma-variations":           { x: 75.6, y: 44.4, w: 13 },
-  "linko":                       { x: 7.4,  y: 26,   w: 13 },
-  "dodo":                        { x: 79,   y: 70,   w: 11 },
+  "oak-tree":                       { x: 41.3, y: 36.2, w: 19.2 },
+  "situated-thresholds":            { x: 15.7, y: 52.3, w: 17.9 },
+  "fox-in-london":                  { x: 60.3, y: 27.2, w: 16.6 },
+  "tubecast":                       { x: 61.0, y: 62.8, w: 16.6 },
+  "binary-conversion-implement":    { x: 20.1, y: 15.3, w: 17.9 },
+  "no-more-algorithm":              { x: 36.7, y: 73.4, w: 14.1 },
+  "enigma-variations":              { x: 79.6, y: 42.9, w: 16.6 },
+  "linko":                          { x: 2.5,  y: 25,   w: 16.6 },
+  "dodo":                           { x: 83,   y: 71,   w: 14.1 },
 };
 const layout = projects.map((p) => layoutBySlug[p.slug] ?? { x: 20, y: 20, w: 14 });
 ---
