@@ -56,7 +56,7 @@ body[data-mode="slide"] .stage{display:none}
   box-shadow:0 20px 44px -32px rgba(0,0,0,.92),inset 0 1px 0 rgba(255,255,255,.04);
   transition:transform .4s cubic-bezier(.22,.61,.36,1),filter .3s ease,opacity .28s ease,box-shadow .3s ease,border-color .3s ease;
 }
-.node img{
+.node img,.node video{
   width:100%;height:auto;border-radius:4px;
   box-shadow:none;
   filter:saturate(.98);transition:box-shadow .35s ease,filter .28s ease;
@@ -130,7 +130,7 @@ body[data-mode="slide"] .slide{display:block}
   border:1px solid var(--stack-border);padding:8px;
   box-shadow:0 24px 58px -42px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.04);
 }
-.slide-media img{width:100%;height:auto;border-radius:4px;transition:transform .5s cubic-bezier(.22,.61,.36,1)}
+.slide-media img,.slide-media video{display:block;width:100%;height:auto;border-radius:4px;transition:transform .5s cubic-bezier(.22,.61,.36,1)}
 .slide-item:hover .slide-media img{transform:scale(1.02)}
 .slide-item[data-slug="linko"] .slide-media{aspect-ratio:16/10;display:grid;place-items:center;background:var(--stack)}
 .slide-item[data-slug="linko"] .slide-media img{width:100%;height:100%;max-height:none;max-width:none;background:#fff;object-fit:contain;padding:10% 12%}

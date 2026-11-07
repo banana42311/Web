@@ -24,7 +24,7 @@ const layout = [
   { x: 71.5, y: 65, w: 18.5 },
   { x: 18.5, y: 65, w: 15.5 },
   { x: 41.5, y: 56, w: 21 },
-  { x: 60,   y: 15, w: 10 },
+  { x: 58.5, y: 12, w: 14 },
 ];
 ---
 <Layout title="Ji Su Kim — Interaction & Experience Design">
@@ -48,7 +48,9 @@ const layout = [
             style={`left:${layout[i]?.x ?? 20}%;top:${layout[i]?.y ?? 20}%;--w:${layout[i]?.w ?? 18}vw`}
             aria-label={`Open ${p.title}`}>
             {thumbOf(p)
-              ? <img src={thumbOf(p)} alt={p.title} loading="lazy" draggable="false" />
+              ? (p.thumbVideo
+                ? <video src={p.thumbVideo} poster={thumbOf(p)} autoplay muted loop playsinline preload="metadata" aria-label={p.title}></video>
+                : <img src={thumbOf(p)} alt={p.title} loading="lazy" draggable="false" />)
               : <span style={`display:block;aspect-ratio:3/4;border-radius:3px;background:radial-gradient(130% 130% at 30% 20%, ${p.color}, #0d0d10 80%)`}></span>}
             <span class="see-more">SEE MORE</span>
           </button>
@@ -68,7 +70,9 @@ const layout = [
         <button class="slide-item" type="button" data-i={i} data-slug={p.slug} aria-label={`Open ${p.title}`}>
           <div class="slide-media">
             {thumbOf(p)
-              ? <img src={thumbOf(p)} alt={p.title} loading="lazy" />
+              ? (p.thumbVideo
+              ? <video src={p.thumbVideo} poster={thumbOf(p)} autoplay muted loop playsinline preload="metadata" aria-label={p.title}></video>
+              : <img src={thumbOf(p)} alt={p.title} loading="lazy" />)
               : <span style={`display:block;aspect-ratio:16/10;background:radial-gradient(130% 130% at 30% 20%, ${p.color}, #0d0d10 80%)`}></span>}
           </div>
           <div class="slide-meta"><span class="slide-title">{p.title}</span><span class="slide-year">{p.year}</span></div>

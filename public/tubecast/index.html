@@ -130,7 +130,7 @@ footer b{color:var(--ink);letter-spacing:.28em;font-size:13px}
 
 <header class="bar"><div class="wrap">
   <a class="brand" href="#top">TUBECAST</a>
-  <nav aria-label="Sections"><a href="#outcomes">Outcomes</a><a href="#app">App</a><a href="#method">Algorithm</a><a href="#loop">Learning loop</a><a href="#build">How it was built</a></nav>
+  <nav aria-label="Sections"><a href="#outcomes">Outcomes</a><a href="#app">App</a><a href="#method">Algorithm</a><a href="#loop">Learning loop</a></nav>
 </div></header>
 
 <main class="wrap" id="top">
@@ -199,42 +199,12 @@ footer b{color:var(--ink);letter-spacing:.28em;font-size:13px}
   <div class="cap"><span>Space pause · ← → step · R restart. 1 second ≈ 1 minute of service.</span><a href="loop.html" target="_blank" rel="noopener">Open full screen →</a></div>
 </section>
 
+
+
+
+
 <section class="s" id="loop">
-  <div class="eyebrow a">The learning loop</div>
-  <h2>It checks itself every day.</h2>
-  <p class="sub">A forecast is only useful if it can be wrong in public. Every prediction is logged first, then scored against real trains the next day.</p>
-  <div class="video">
-    <video controls muted loop playsinline preload="metadata" poster="img/loop-poster.jpg"><source src="loop.mp4" type="video/mp4"></video>
-  </div>
-  <div class="cap"><span>30-second walk through one station-and-direction forecast. 1 second ≈ 1 minute of service.</span><a href="loop.html" target="_blank" rel="noopener">Step through the interactive version →</a></div>
-  <div class="loopsteps">
-    <div class="card"><span class="eyebrow">Past</span><strong>Baseline</strong><p>How often delays start at each station and hour.</p></div>
-    <div class="card"><span class="eyebrow a">Live · every minute</span><strong style="color:var(--amber)">Now</strong><p>Gaps between real trains show where it is slowing.</p></div>
-    <div class="card"><span class="eyebrow t">Combine and learn · daily</span><strong style="color:var(--teal)">Next 30 min</strong><p>One score per station and direction, retrained on new days.</p></div>
-  </div>
-</section>
-
-<section class="s" id="build">
-  <div class="eyebrow">How it was built</div>
-  <h2>One person, two AI teams.</h2>
-  <p class="sub">Data and design ran in parallel, so the product and the forecast shipped together.</p>
-  <div class="two">
-    <div class="card hl-a"><h3>Hermes agents</h3><p class="sub2">Data and model, running on my own server around the clock.</p>
-      <ul><li>Research on TfL data sources and delay rules</li><li>Pattern learning on past and live data, retrained daily</li><li>Live collection every minute, served as an API</li></ul></div>
-    <div class="card hl-t"><h3>Claude + Figma</h3><p class="sub2">From design system to working product.</p>
-      <ul><li>Design system: tokens and components in Figma</li><li>Screens and user flows built from those components</li><li>Figma frames turned into a working mobile web app</li></ul></div>
-  </div>
-</section>
-
-<section class="s" id="next">
-  <div class="eyebrow">Lessons and next steps</div>
-  <h2>What it taught me.</h2>
-  <div class="two">
-    <div class="card hl-a"><h3>Challenges</h3>
-      <ul><li>Station-level history had to be recorded from scratch. With days of data, forecasts show a signal but are not final.</li><li>Forecasts can only be checked when the future arrives, so every one is logged first and scored later.</li><li>Real and predicted delays are easy to confuse, so the design separates them at a glance.</li></ul></div>
-    <div class="card hl-t"><h3>Next</h3>
-      <ul><li>Ship as an app, with alerts on the trips you take every day.</li><li>Expand to Overground, National Rail and buses as the data grows.</li><li>Connect with map services to suggest a way around a delay.</li></ul></div>
-  </div>
+  <div class="frame" style="margin-top:0"><img src="img/loop-slide.png" alt="The learning loop: baseline from past delays, live train arrivals every minute, and a daily relearned forecast for the next 30 minutes. Every forecast is logged first, scored the next day on real trains, then relearned." width="1920" height="900"></div>
 </section>
 
 <footer>
