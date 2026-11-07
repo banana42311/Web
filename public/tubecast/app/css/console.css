@@ -1,0 +1,62 @@
+/* Figma 25:49 supplies placement only. Map, ring, markers, cards and route
+   treatments come from the same stylesheets and DOM used by the mobile app. */
+html,body.console-page{width:100%;height:100%;overflow:hidden;background:#12161c}
+body.console-page{display:block;min-height:0;padding:0}
+.console-page *{box-sizing:border-box}
+.console{height:100vh;min-width:1180px;padding:0 24px 24px;display:grid;grid-template-columns:320px minmax(600px,1fr) 480px;grid-template-rows:80px minmax(0,1fr);column-gap:16px;row-gap:16px;background:#12161c}
+.console-header{grid-column:1/-1;display:grid;grid-template-columns:400px minmax(560px,1fr) 400px;align-items:center;gap:16px}
+.console-brand{display:flex;align-items:center;gap:18px;color:#fff;text-decoration:none;white-space:nowrap}
+.console-brand span{font-size:19px;font-weight:700;letter-spacing:4px}
+.console-brand small{color:var(--sec);font-size:12px}
+.console-route{position:relative;justify-self:center;display:flex;align-items:center;gap:10px;min-width:560px}
+.console-route label{height:49px;min-width:190px;display:grid;grid-template-columns:48px 1fr;align-items:center;padding:0 14px;border-radius:14px;background:var(--surface-2);border:1px solid rgba(255,255,255,.1)}
+.console-route label small{color:var(--sec);font-size:11px}
+.console-route input{width:100%;border:0;outline:0;background:none;color:#fff;font-size:15px;font-weight:600}
+.console-route>span{color:var(--sec)}
+.console-route .btn-p{width:auto;min-width:112px;height:49px;padding:0 18px;border-radius:14px}
+.console-route-error{position:absolute;left:0;right:0;top:52px;margin:0;text-align:center;color:#ffb25b;font-size:11px;line-height:16px}
+.console-route label.invalid{border-color:var(--severe);background:rgba(220,36,31,.1)}
+.console-meta{justify-self:end;display:flex;align-items:center;gap:9px;white-space:nowrap;font-size:12px;color:var(--sec)}
+.console-meta b{font-size:15px;color:#fff;font-variant-numeric:tabular-nums}
+.console-meta a{margin-left:12px;color:#fff;text-decoration:none;font-weight:600}
+.console-panel{position:relative;width:auto;height:auto;min-height:0;border-radius:20px;overflow:hidden;padding:0}
+.console-scroll{position:absolute;inset:0;overflow:auto;padding:24px;scrollbar-width:none}
+.console-scroll::-webkit-scrollbar,.console-route-panel::-webkit-scrollbar{display:none}
+.console-summary{display:grid;gap:6px;padding-bottom:22px;border-bottom:1px solid rgba(255,255,255,.1)}
+.console-summary small,.console-section>p{color:var(--sec);font-size:11px;line-height:16px}
+.console-summary h1{font-size:30px;line-height:34px}
+.console-summary strong{font-size:64px;line-height:70px;font-weight:300;font-variant-numeric:tabular-nums}
+.console-summary strong span{font-size:16px;color:var(--sec);font-weight:400}
+.console-section{margin-top:24px}
+.console-section-head{display:flex;align-items:center;gap:9px;margin-bottom:4px;color:var(--sec);font-size:11px;font-weight:700;letter-spacing:.8px}
+.console-section-head b{display:grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:rgba(255,255,255,.1);color:#fff;font-size:11px}
+.console-section>p{margin:0 0 10px}
+.console-panel .station-status{margin:0}
+.console-panel .station-status-row{cursor:pointer}
+.console-panel .station-status-row b{font-size:13px}
+.console-line-list{display:flex;flex-direction:column;gap:7px}
+.console-line-list .fl-row{min-height:54px;border-radius:14px;padding:8px 12px}
+.console-line-list .fl-row .bar{height:30px}
+.console-line-list .fl-row .nm b{font-size:14px;line-height:18px}
+.console-line-list .fl-row .nm small{font-size:11px;line-height:14px}
+.console-line-list .fl-row .n{font-size:18px}
+.console-map{position:relative;min-width:0;min-height:0;overflow:hidden;border-radius:20px;background:var(--surface-2)}
+.console-map iframe{display:block;width:100%;height:100%;border:0}
+.console-timebar{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);width:min(680px,calc(100% - 48px));height:84px;padding:12px 16px;display:grid;grid-template-columns:180px 1fr;align-items:center;gap:18px;border-radius:18px;z-index:10}
+.console-timebar>div:first-child{display:grid;gap:5px}.console-timebar>div:first-child b{font-size:11px;letter-spacing:1px;color:var(--sec)}.console-timebar>div:first-child span{font-size:11px;color:var(--sec)}
+.console-time-options{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.console-time-options:before{content:"";position:absolute;left:12.5%;right:12.5%;top:9px;height:1px;background:rgba(255,255,255,.15)}
+.console-time-options button{position:relative;display:grid;grid-template-columns:1fr;justify-items:center;gap:4px;min-height:54px;border:0;background:none;color:var(--sec);cursor:pointer}
+.console-time-options button .delay-dot{z-index:1;width:14px;height:14px;flex-basis:14px}.console-time-options button span{font-size:11px}.console-time-options button small{font-size:9px;min-height:11px}.console-time-options button.on{color:#fff;font-weight:600}
+.console-right #app-ring{height:386px;display:flex;justify-content:center}
+.console-right .ringcard{position:relative;left:auto;top:auto;flex:none;margin:0;width:358px}
+.console-right .ringcard .head .a{display:none}
+.console-right .ringcard .legend{position:static;transform:none;display:block;background:none;border:0;padding:0 8px;white-space:normal}
+.console-right .ringcard .legend p{font-size:11px;line-height:15px}
+.console-route-panel{position:absolute;inset:0;overflow:auto;padding:24px;scrollbar-width:none}
+.console-route-panel[hidden]{display:none}
+.console-route-pane{min-height:100%;display:flex;flex-direction:column}
+.console-route-pane .ro-list{overflow:visible;flex:none}
+.console-route-pane .fs-actions{position:sticky;bottom:-24px;margin-top:16px;padding:14px 0 24px;background:linear-gradient(180deg,transparent,#1a2029 18%)}
+.console-route-pane .fs-x{display:none}
+@media(max-width:1599px){.console{grid-template-columns:280px minmax(520px,1fr) 380px}.console-header{grid-template-columns:280px minmax(560px,1fr) 300px}.console-brand small,.console-meta small{display:none}.console-scroll,.console-route-panel{padding:18px}.console-right #app-ring{height:350px;transform:scale(.9);transform-origin:top center}.console-timebar{width:min(600px,calc(100% - 36px));grid-template-columns:150px 1fr}}

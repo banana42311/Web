@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tubecast · Console</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>window.TUBECAST_CONSOLE_SCENARIO=true;</script>
+<link rel="stylesheet" href="styles.css?v=20261102-ring1">
+<link rel="stylesheet" href="css/flow.css?v=20261102-final2">
+<link rel="stylesheet" href="css/line.css?v=20261104-ns2">
+<link rel="stylesheet" href="css/station.css?v=20261102-console2">
+<link rel="stylesheet" href="css/route.css?v=20261102-console2">
+<link rel="stylesheet" href="css/service.css?v=20261103-mk1">
+<link rel="stylesheet" href="css/console.css?v=20261102-final2">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
+</head>
+<body class="console-page">
+<div class="console" id="console">
+  <header class="console-header">
+    <a class="console-brand" href="index.html#overview" aria-label="Tubecast overview"><span>TUBECAST</span><small>London delay forecast</small></a>
+    <form class="console-route" id="route-form">
+      <label><small>From</small><input id="route-from" list="stations" value="Stratford" autocomplete="off"></label>
+      <span aria-hidden="true">→</span>
+      <label><small>To</small><input id="route-to" list="stations" value="White City" autocomplete="off"></label>
+      <datalist id="stations"></datalist>
+      <button class="btn-p" type="submit">Check route</button>
+      <p class="console-route-error" id="route-error" role="alert" aria-live="polite"></p>
+    </form>
+    <div class="console-meta"><span class="delay-dot now good" aria-hidden="true"></span><b id="console-time">08:43</b><small id="console-updated">Updated just now</small><a href="about.html">How it works</a></div>
+  </header>
+
+  <aside class="card console-panel console-left" aria-label="Current service overview">
+    <div class="console-scroll">
+      <section class="console-summary" id="console-summary"></section>
+      <section class="console-section"><div class="console-section-head"><span>DELAYS NOW</span><b id="now-count">0</b></div><p>Observed station and direction reports</p><div class="station-status" id="now-list"></div></section>
+      <section class="console-section"><div class="console-section-head"><span>TFL LINE STATUS</span></div><div class="console-line-list" id="line-status"></div></section>
+    </div>
+  </aside>
+
+  <main class="console-map" aria-label="Interactive Tube delay map">
+    <iframe id="app-map" title="Tubecast interactive map" src="map.html?line=central&amp;console=1&amp;scenario=commute"></iframe>
+    <div class="card console-timebar" aria-label="Forecast time">
+      <div><b>TIME</b><span id="time-copy">Reported delays now</span></div>
+      <div class="console-time-options" role="group" aria-label="Forecast minute">
+        <button class="on" data-minute="0"><i class="delay-dot now minor"></i><span>Now</span><small id="time-now">08:43</small></button>
+        <button data-minute="10"><i class="delay-dot next minor"></i><span>+10</span></button>
+        <button data-minute="20"><i class="delay-dot next minor"></i><span>+20</span></button>
+        <button data-minute="30"><i class="delay-dot next minor"></i><span>+30 min</span></button>
+      </div>
+    </div>
+  </main>
+
+  <aside class="card console-panel console-right" aria-live="polite">
+    <div class="console-scroll" id="forecast-view">
+      <div id="app-ring"></div>
+      <section class="console-section"><div class="console-section-head"><span>WHERE IT MAY GET WORSE</span><b id="next-count">0</b></div><p>Predicted station and direction risk</p><div class="station-status" id="next-list"></div></section>
+    </div>
+    <div class="console-route-panel route-mode" id="route-view" hidden><div class="console-route-pane" id="route-pane"></div></div>
+  </aside>
+</div>
+
+<script src="config.js?v=20261102-state1"></script>
+<script src="assets/linemeta.js?v=20261102-console2"></script>
+<script src="assets/lines.js?v=20261102-console2"></script>
+<script src="assets/network.js?v=20261102-console2"></script>
+<script src="js/station-catalog.js?v=20261102-console2"></script>
+<script src="assets/tfl-network.js?v=20261102-console2"></script>
+<script src="js/demo-mode-core.js?v=20261102-final2"></script>
+<script src="data/demo/commute.js?v=20261102-final2"></script>
+<script src="data/demo/journey_stratford_whitecity.js?v=20261102-console2"></script>
+<script src="js/demo-mode.js?v=20261102-ring2"></script>
+<script src="data/naptan-names.js?v=20261105-n8"></script>
+<script src="js/state-model.js?v=20261105-stale1"></script>
+<script src="data/model/tubecast-20261104.js?v=20261105-m8"></script>
+<script src="js/forecast-model.js?v=20261103-e2"></script>
+<script src="js/live-data.js?v=20261105-refresh1"></script>
+<script src="js/flow-data.js?v=20261106-carry1"></script>
+<script src="js/search.js?v=20261102-final2"></script>
+<script src="js/lines-page.js?v=20261104-dup1"></script>
+<script src="js/ring-chart.js?v=20261106-carry1"></script>
+<script src="js/overview-page.js?v=20261103-fix5"></script>
+<script src="js/console.js?v=20261102-b2"></script>
+</body>
+</html>
