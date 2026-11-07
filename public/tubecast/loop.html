@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tubecast · The learning loop</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;background:#12161C;overflow:hidden}canvas{position:absolute;left:50%;top:50%}
+#hint{position:fixed;left:12px;bottom:10px;font:11px -apple-system,Inter,Helvetica,sans-serif;color:rgba(255,255,255,.25)}</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas><div id="hint">Space pause · ← → step · R restart · H hide</div>
+<script>
+/* Tubecast — how one station-direction forecast is computed. 34 s loop, 1 s ≈ 1 min of service.
+   Method (combined model v1.1): passages (first poll with timeToStation ≤ 90 s) → gap V per station & direction →
+   delayed now if V ≥ 5 min and ≥ 2 × usual → features → logistic score with weights learned from previous days only.
+   Weights shown are the standardised coefficients learned on 28–31 Oct. Station values are illustrative. */
+const W=1920,H=1080,cv=document.getElementById('c'),g=cv.getContext('2d');
+function fit(){const s=Math.min(innerWidth/W,innerHeight/H);cv.style.transform=`translate(-50%,-50%) scale(${s})`}addEventListener('resize',fit);fit();
+const F='-apple-system,"SF Pro Display","SF Pro Text",Inter,Helvetica,Arial,sans-serif';
+const BG='#12161C',PANEL='#1A1F27',INK=[238,242,246],TEAL=[31,166,166],AMB=[255,161,43];
+const rgba=(c,a)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`, cl=v=>Math.max(0,Math.min(1,v)), ease=t=>{t=cl(t);return t*t*(3-2*t)}, lerp=(a,b,t)=>a+(b-a)*t;
+const T=30;let LW=[1,1,1,1,1,1,1,1,1],WS=0; let t0=performance.now(),paused=false,pt=0,hide=false; const q=new URLSearchParams(location.search);let FIX=q.has('t')?+q.get('t'):null;window.renderAt=x=>{FIX=x;frame()};
+const ST=[[0,'Collect','Every train passing a platform is recorded. Per station and direction:','V = max( longest gap in last 20 min ,  time since last train )'],
+ [7,'Detect','Trains are held before Mile End, so none pass its platform. The algorithm only sees the gap growing:','delayed now  ⇔  V ≥ 5 min  and  V ≥ 2 × usual'],
+ [13,'Look ahead','Travel time is added along the track graph. Stations within 30 min ahead get +1 in their band: one term of each station’s score.','ring  ⇔  usual rate + own gap + delayed ahead  ≥  top-5% line'],
+ [26,'Score','All features meet in one logistic score. Weights learned from previous days only.','p = σ( Σ wᵢ · xᵢ )   →   watch if p ≥ top-5% line of past days'],
+ [35,'Check','Next day, every forecast is checked against real trains; the weights are learned again.','~600,000 forecasts checked on unseen days']];
+addEventListener('keydown',e=>{if(e.code==='Space'){paused=!paused;if(paused)pt=now();else t0=performance.now()-pt*1000}
+ if(e.key==='r'||e.key==='R'){t0=performance.now();paused=false}
+ if(e.key==='ArrowRight'||e.key==='ArrowLeft'){const c=now();t0=performance.now()-((c+(e.key==='ArrowRight'?5:-5)+T)%T)*1000;paused=false}
+ if(e.key==='h'||e.key==='H'){hide=!hide;document.getElementById('hint').style.display=hide?'none':''}});
+const now=()=>FIX!=null?FIX:(paused?pt:((performance.now()-t0)/1000)%T);
+function txt(s,x,y,sz,col,o={}){g.font=`${o.w||400} ${sz}px ${F}`;g.fillStyle=col;g.textAlign=o.a||'left';g.fillText(s,x,y)}
+function glow(x,y,r,c,a){if(a<=.01)return;const gr=g.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,rgba(c,a));gr.addColorStop(1,rgba(c,0));g.fillStyle=gr;g.fillRect(x-r,y-r,2*r,2*r)}
+function line(p,c,w){g.strokeStyle=c;g.lineWidth=w;g.lineCap='round';g.lineJoin='round';g.beginPath();p.forEach((q,i)=>i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]));g.stroke()}
+function plen(p){const L=[0];for(let i=1;i<p.length;i++)L.push(L[i-1]+Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]));return L}
+function at(p,L,d){d=Math.max(0,Math.min(L[L.length-1],d));let i=1;while(i<L.length-1&&L[i]<d)i++;const f=(d-L[i-1])/(L[i]-L[i-1]||1);return[lerp(p[i-1][0],p[i][0],f),lerp(p[i-1][1],p[i][1],f)]}
+
+/* ---- abstract network: one main line (focus) + a few crossing lines, all grey ---- */
+const Y=560;
+const MAIN=[['Stratford',1160,430,null],['Mile End',1040,Y,0],['Bethnal Green',920,Y,3],['Liverpool St',780,Y,6],['Bank',650,Y,9],["St Paul's",540,Y,11],['Chancery Ln',430,Y,14],['Holborn',330,Y,16],['Tottenham Ct Rd',230,Y,18],['Oxford Circus',100,Y,21]];
+const mainPts=[[1260,430],...MAIN.map(s=>[s[1],s[2]]),[60,Y]], ML=plen(mainPts), MT=ML[ML.length-1];
+const sd={};MAIN.forEach((s,i)=>sd[s[0]]=ML[i+1]);
+const OTHER=[[[680,250],[650,Y],[640,880]],[[600,410],[780,Y],[900,720],[1100,760]],[[1260,690],[1040,Y],[980,470],[860,410],[520,410]],[[90,700],[330,Y],[420,330]]];
+const OL=OTHER.map(plen);
+const SPD=MT/20, HOLD0=4.6, HOLD1=36.5, HD=sd['Mile End']-40;
+function west(t){const o=[];for(let k=-12;k<22;k++){const dep=k*2.6;let d=(t-dep)*SPD;const r=dep+HD/SPD;if(r>HOLD0){const rel=HOLD1+(r-HOLD0)*.4;d=t<rel?Math.min(d,HD-(r-HOLD0)*7):HD+(t-rel)*SPD}if(d>=0&&d<=MT)o.push(d)}return o}
+function east(t){const o=[];for(let k=-12;k<22;k++){const d=MT-(t-k*2.6-1.3)*SPD;if(d>=0&&d<=MT)o.push(d)}return o}
+function lastPass(t,name){let best=-99;for(let k=-12;k<22;k++){const dep=k*2.6;const r=dep+HD/SPD;let pass=dep+sd[name]/SPD;if(r>HOLD0)pass=HOLD1+(r-HOLD0)*.4+(sd[name]-HD)/SPD;if(pass<=t&&pass>best)best=pass}return best}
+// learned standardised weights (v1.1, trained 28–31 Oct)
+const LA0V=13.6+2*1.15+.4;
+const WGT={base:1.89,gap:-0.36,now:-0.34,a1:0.135,a2:0.117,a3:0.005,msg:0.146,ich:0.104,crowd:-0.071};
+const BUCKET=m=>m<=10?0:m<=20?1:2;
+// illustrative per-station scores: p and the share of the score from [usual rate, own gap, delayed ahead]
+const SP={'Bethnal Green':[.24,.4,.1,.5],'Liverpool St':[.31,.6,.1,.3],'Bank':[.27,.55,.15,.3],"St Paul's":[.09,.7,.1,.2],'Chancery Ln':[.07,.6,.2,.2],'Holborn':[.23,.45,.4,.15],'Tottenham Ct Rd':[.15,.7,.1,.2],'Oxford Circus':[.20,.95,.05,0]};
+const CUT=.22;
+const STRANDS=[...Array(220)].map(()=>({o:Math.random(),s:.5+Math.random()*.8,j:Math.random()-.5}));
+
+function mainScene(t,fa){
+ const si=ST.reduce((a,s,i)=>t>=s[0]?i:a,0);
+ g.globalAlpha=fa;
+ // faint grid
+ // network
+ OTHER.forEach(p=>line(p,rgba(INK,.12),5));
+ line(mainPts,rgba(INK,.22),6);
+ // passengers of data: teal particles along other lines (always flowing)
+ OTHER.forEach((p,i)=>{const L=OL[i],tot=L[L.length-1];for(let k=0;k<6;k++){const d=((t*70+k*tot/6+i*90)%tot);const[x,y]=at(p,L,d);glow(x,y,10,TEAL,.5);}});
+ const Vme=Math.max(2.6,t-lastPass(t,'Mile End')); const del=(Vme>=5.2?1:0)*(1-ease((t-HOLD1-1.5)/1));
+ // main line trains (teal), westbound above / eastbound below
+ west(t).forEach(d=>{const[x,y]=at(mainPts,ML,d);const held=t>HOLD0+.5&&t<HOLD1&&d<sd['Mile End']-20&&d>sd['Mile End']-260;
+   if(held){g.strokeStyle=rgba(AMB,.8);g.lineWidth=1.5;g.beginPath();g.arc(x,y-12,5,0,7);g.stroke()} else glow(x,y-12,12,TEAL,.85);});
+ if(t>HOLD0+2&&t<HOLD1){const a=ease((t-HOLD0-2)/.8);g.globalAlpha=fa*a;txt('trains held',1150,520,13,rgba(AMB,.9),{w:600});txt('none reach the platform',1150,538,12,rgba(AMB,.6));g.globalAlpha=fa}
+ east(t).forEach(d=>{const[x,y]=at(mainPts,ML,d);glow(x,y+12,10,TEAL,.45);});
+ // pass pulses (collect)
+ const pulseA=si===0?1:.3;
+ west(t).forEach(d=>MAIN.forEach(s=>{const dd=d-sd[s[0]];if(dd>=0&&dd<SPD*.5){const f=dd/(SPD*.5);g.strokeStyle=rgba(TEAL,(1-f)*.7*pulseA);g.lineWidth=1.5;g.beginPath();g.arc(s[1],s[2],10+f*22,0,7);g.stroke()}}));
+ // look-ahead: probe walks the track graph from Mile End, adding travel time hop by hop
+ const LA0=13.6, HOP=1.15; const hops=MAIN.filter(m=>m[3]>0); const sp=t>=LA0&&t<HOLD1+1?(1-ease((t-HOLD1)/1)):0;
+ if(sp>0){const k=(t-LA0)/HOP; const reached=Math.min(hops.length,Math.floor(k)); const f=cl(k-Math.floor(k));
+  // trail along the track
+  const dEnd= reached<hops.length? lerp(sd[(reached?hops[reached-1]:MAIN[1])[0]],sd[hops[reached][0]],ease(f)) : sd[hops[hops.length-1][0]];
+  // thin strands (a mesh of fine lines) along the same line only, fading with travel time
+  const d0=sd['Mile End'], span=Math.max(1,dEnd-d0), dMax=sd[hops[hops.length-1][0]]-d0;
+  g.lineWidth=.7;
+  STRANDS.forEach((s,si2)=>{if(si2%2)return; const reach=span*(.55+.45*s.s); const off=s.j*90, ph=s.o*6.28;
+   g.beginPath(); for(let d=0;d<=reach;d+=8){const p=at(mainPts,ML,d0+d); const env=Math.sin(Math.min(1,d/90)*1.571); const yy=p[1]+off*env*(.6+.4*Math.sin(d/55+ph+t*.35)); d?g.lineTo(p[0],yy):g.moveTo(p[0],yy)}
+   const fade=1-Math.min(1,reach/(dMax+40))*.75; g.globalAlpha=fa*sp*fade; g.strokeStyle=rgba(AMB,.22); g.stroke();});
+  g.globalAlpha=fa*sp;
+  // per-station assignment chips
+  hops.forEach(([n,x,y,m],i)=>{if(i>=reached)return;const b=BUCKET(m);const a=ease((k-i-1)/.4);const w=[WGT.a1,WGT.a2,WGT.a3][b];
+   g.globalAlpha=fa*sp*a; txt(`${m} min`,x,y-34,13,rgba(INK,.7),{a:'center',w:600});
+   txt(`ahead${['₀₋₁₀','₁₀₋₂₀','₂₀₋₃₀'][b]} +1`,x,y+80,11,rgba(AMB,b===2?.35:.75),{a:'center',w:600});
+   const [pp,u,o,ah]=SP[n], bw=70*Math.min(1,pp/.35), bx=x-35, by=y+90;
+   g.fillStyle=rgba(INK,.07);g.fillRect(bx,by,70,4);
+   g.fillStyle=rgba(INK,.35);g.fillRect(bx,by,bw*u,4);g.fillStyle=rgba(INK,.75);g.fillRect(bx+bw*u,by,bw*o,4);g.fillStyle=rgba(AMB,.9);g.fillRect(bx+bw*(u+o),by,bw*ah,4);
+   g.fillStyle=rgba(INK,.6);g.fillRect(bx+70*CUT/.35-.5,by-3,1.5,10);
+   txt(`p ${Math.round(pp*100)}%`,x,y+112,12,rgba(pp>=CUT?AMB:INK,pp>=CUT?1:.45),{a:'center',w:pp>=CUT?700:400});});
+  if(reached>0){const a=ease((k-1)/.6);g.globalAlpha=fa*sp*a;let lx=60,ly=Y+196;
+   [[[INK,.35],'usual rate here'],[[INK,.75],'own gap'],[AMB,'delayed ahead']].forEach(([c,l])=>{g.fillStyle=Array.isArray(c[0])?rgba(c[0],c[1]):rgba(c,.9);g.fillRect(lx,ly-7,14,4);txt(l,lx+20,ly,12,rgba(INK,.55));lx+=20+g.measureText(l).width+28});
+   g.fillStyle=rgba(INK,.6);g.fillRect(lx,ly-10,1.5,10);txt('ring only if p ≥ top-5% line',lx+10,ly,12,rgba(INK,.55));}
+  // band brackets
+  [[0,10,'0–10 min ahead'],[10,20,'10–20 min ahead'],[20,30,'20–30 min ahead']].forEach(([lo,hi,lab],i)=>{const ok=hops.some((h,j)=>j<reached&&h[3]>lo&&h[3]<=hi); if(!ok)return;
+   const xs=hops.filter(h=>h[3]>lo&&h[3]<=hi).map(h=>h[1]); const x1=Math.min(...xs)-30,x2=Math.max(...xs)+30, yb=Y+140;
+   g.globalAlpha=fa*sp*.9; g.strokeStyle=rgba(AMB,i===2?.25:.6); g.lineWidth=1.5; g.beginPath(); g.moveTo(x1,yb-6); g.lineTo(x1,yb); g.lineTo(x2,yb); g.lineTo(x2,yb-6); g.stroke();
+   txt(lab,(x1+x2)/2,yb+20,12,rgba(INK,.5),{a:'center'});});
+  g.globalAlpha=fa;
+  // other lines: explicitly unaffected
+  if(t>LA0+3){const a=ease((t-LA0-3)/.8)*sp;g.globalAlpha=fa*a;txt('other lines: no feature added',660,262,12,rgba(INK,.45),{a:'center'});g.globalAlpha=fa}
+ }
+ // stations + V bars (westbound)
+ const cut=0.22;
+ MAIN.forEach(([n,x,y,m],i)=>{
+  if(m===null){g.fillStyle=BG;g.strokeStyle=rgba(INK,.6);g.lineWidth=2;g.beginPath();g.arc(x,y,6,0,7);g.fill();g.stroke();txt(n,x,y-22,13,rgba(INK,.5),{a:'center'});return}
+  const lp=lastPass(t,n), since=Math.max(0,t-lp), V=Math.min(20,Math.max(2.6,since)), usual=2.6, ratio=V/usual;
+  const now_=n==='Mile End'&&del>.5;
+  // prediction state
+  // forecast ring: appears when the mesh front reaches the station (strength by band)
+  const hi=MAIN.filter(s=>s[3]>0).findIndex(s=>s[0]===n), kk=(t-13.6)/1.15;
+  let pr=0;if(m>0&&t<T-1){pr=SP[n][0]>=CUT?ease((kk-hi-1)/.5):0}
+  const watch=pr>0;
+  // real delay arriving later (sim time compressed): no train passes, gap grows; cleared when a released train passes
+  const ONSET={'Bethnal Green':20,'Liverpool St':23.5,'Bank':27}, on=ONSET[n];
+  const passedAfter=lastPass(t,n)>HOLD1;
+  const real=on!=null&&t>=on&&!passedAfter, realA=real?ease((t-on)/.8):0;
+  const hit=on!=null&&t>=on, miss=on==null&&pr>.05&&t>=HOLD1+.5;
+  if(now_){glow(x,y,80,AMB,.55*del);g.fillStyle=rgba(AMB,1);g.beginPath();g.arc(x,y,10,0,7);g.fill()}
+  else if(real){glow(x,y,60,AMB,.45*realA);g.fillStyle=BG;g.beginPath();g.arc(x,y,9,0,7);g.fill();g.fillStyle=rgba(AMB,realA);g.beginPath();g.arc(x,y,9,0,7);g.fill()}
+  else{const back=passedAfter&&on!=null?ease((t-lastPass(t,n))/.8):1;g.fillStyle=BG;g.strokeStyle=rgba(TEAL,.9*back+.1);g.lineWidth=2.5;g.beginPath();g.arc(x,y,7,0,7);g.fill();g.stroke()}
+  if(pr>0&&!passedAfter){const rr=real?17+realA*5:17;glow(x,y,46,AMB,.22*pr*(1-realA));g.save();g.setLineDash(real?[]:[4,4]);g.lineDashOffset=-t*10;g.strokeStyle=rgba(AMB,(watch?.95:.25+.35*pr)*(real?1-realA*.6:1));g.lineWidth=2;g.beginPath();g.arc(x,y,rr,0,7);g.stroke();g.restore()}
+  if(miss){const a=ease((t-HOLD1-.5)/.6);txt('✗',x,y-60,14,rgba(INK,.45*a),{a:'center',w:600})}
+  if(hit){const a=ease((t-on-.4)/.6);txt('✓',x,y-60,15,rgba(TEAL,a),{a:'center',w:700})}
+  // label
+  txt(n,x,y+44,14,rgba(now_?AMB:INK,now_?1:.75),{a:'center',w:500});
+  // V bar
+  if(si>=2&&n!=='Mile End')return;
+  const bw=70,bx=x-bw/2,by=y+58,f=cl(V/13);g.fillStyle=rgba(INK,.08);g.fillRect(bx,by,bw,3);
+  g.fillStyle=ratio>=2&&V>=5?rgba(AMB,.95):rgba(TEAL,.8);g.fillRect(bx,by,bw*f,3);
+  g.fillStyle=rgba(INK,.55);g.fillRect(bx+bw*cl(2*usual/13)-.5,by-3,1.5,9);
+  if(si<=1)txt(`V ${V.toFixed(0)}′`,x,by+18,11,rgba(INK,.4),{a:'center'});
+ });
+ // focus card for Mile End (detect)
+ if(t>=7&&t<13.5){const a=ease((t-7)/.5)*(1-ease((t-13)/.5));const lp=lastPass(t,'Mile End'),V=Math.max(2.6,t-lp);g.globalAlpha=fa*a;
+  const x=880,y=250;g.fillStyle='rgba(18,22,28,.92)';g.beginPath();g.roundRect(x,y,320,118,14);g.fill();
+  txt('MILE END · WESTBOUND',x+20,y+30,12,rgba(INK,.5),{w:600});txt(`V = ${V.toFixed(1)} min`,x+20,y+68,26,V>=5.2?rgba(AMB,1):rgba(INK,.95),{w:700});
+  txt('usual 2.6 · threshold 5.2',x+20,y+96,13,rgba(INK,.5));g.globalAlpha=fa}
+ // ---- right panel: score for Liverpool St westbound ----
+ const px=1330,py=180,pw=520;
+ g.fillStyle=PANEL;g.beginPath();g.roundRect(px,py,pw,640,18);g.fill();
+ txt('LIVERPOOL ST · WESTBOUND',px+24,py+36,12,rgba(INK,.5),{w:600});
+ txt('Will a new delay start within 30 min?',px+24,py+66,18,rgba(INK,.9),{w:600});
+ const feats=[['Usual rate · this station, this hour','base',.6,'6%'],['Gap vs usual','gap',.3,'1.3×'],['Already delayed here','now',0,'no'],['Delayed ahead · 0–10 min','a1',t>=LA0V?1.6:0,t>=LA0V?'1 (Mile End)':'0'],['Delayed ahead · 10–20 min','a2',0,'0'],['Delayed ahead · 20–30 min','a3',0,'0'],['TfL status on the line','msg',t>=12?1:0,t>=12?'Minor':'Good'],['Other lines at this station','ich',0,'none'],['Crowding vs usual','crowd',0,'—']];
+ const show=si>=3?1:(si>=2?.5:.25);
+ feats.forEach(([n,k,v,disp],i)=>{const y=py+112+i*40, w=WGT[k], c=w*v;
+  const act=(k.startsWith('a')&&si>=2)||si>=3;txt(n,px+24,y,14,rgba(INK,act?.85:.45));txt(disp,px+330,y,13,rgba(INK,.55),{a:'right'});
+  const wl=LW[i],wd=w+(WD[k]||0)*WS;txt((wd>=0?'+':'')+wd.toFixed(2),px+380,y,13,rgba(k.startsWith('a')?AMB:INK,.85*wl),{a:'right',w:600});
+  const bx=px+420,bw=Math.min(76,Math.abs(c)*60)*ease(si>=3?(t-26.2-i*.15)/.5:(k==='a1'&&si>=2?(t-LA0V)/.6:0));g.fillStyle=rgba(c>=0?AMB:INK,c>=0?.9:.4);g.fillRect(c>=0?bx:bx-bw,y-9,bw,6);});
+ txt('value',px+330,py+96,11,rgba(INK,.35),{a:'right'});txt('weight',px+380,py+96,11,rgba(INK,.35),{a:'right'});txt('w · x',px+440,py+96,11,rgba(INK,.35));
+ g.strokeStyle=rgba(INK,.08);g.beginPath();g.moveTo(px+24,py+478);g.lineTo(px+pw-24,py+478);g.stroke();
+ const sa=ease((t-LA0V)/1.4);const p=lerp(.06,.31,sa);
+ txt('p = σ( Σ w · x )',px+24,py+514,15,rgba(INK,.55));txt(`${Math.round(p*100)}%`,px+pw-24,py+516,30,rgba(p>=cut?AMB:INK,.95),{a:'right',w:700});
+ const gx=px+24,gw=pw-48,gy=py+548;g.fillStyle=rgba(INK,.08);g.fillRect(gx,gy,gw,6);g.fillStyle=rgba(p>=cut?AMB:TEAL,.9);g.fillRect(gx,gy,gw*cl(p/.5),6);g.fillStyle=rgba(INK,.7);g.fillRect(gx+gw*(cut/.5)-1,gy-6,2,18);
+ txt('top-5% line of past days',gx+gw*(cut/.5),gy+30,11,rgba(INK,.45),{a:'center'});
+ if(sa>.95){g.strokeStyle=rgba(AMB,.8);g.fillStyle=rgba(AMB,.12);g.beginPath();g.roundRect(px+pw-176,py+590,152,34,17);g.fill();g.stroke();txt('WATCH',px+pw-100,py+612,13,rgba(AMB,1),{a:'center',w:700})}
+ txt('Weights: standardised, learned on 28–31 Oct (previous days only).',px,py+672,12,rgba(INK,.4));txt('Removing TfL status, interchange or crowding changes accuracy ≈ 0. Station values illustrative.',px,py+692,12,rgba(INK,.4));
+ g.globalAlpha=1;
+}
+
+
+/* ---------- one continuous 30 s loop: past days → weights → live scoring → check → back into history ---------- */
+const WD={base:.12,a1:.016,msg:-.007,gap:.02}; // tonight's refit (illustrative)
+const KEY=[[0,0],[8,11],[14.5,26],[23.5,39.5],[30,46]];
+function oldT(x){for(let i=1;i<KEY.length;i++){const[a0,b0]=KEY[i-1],[a1,b1]=KEY[i];if(x<=a1)return b0+(b1-b0)*(x-a0)/(a1-a0)}return 46}
+let sd3=5;const r3=()=>{sd3=(sd3*16807)%2147483647;return(sd3-1)/2147483646};
+const DAYS=['28 Oct','29 Oct','30 Oct','31 Oct','1 Nov','2 Nov · today'],SC=30,SR=7,SX=6,SY=6;
+const slotX=d=>60+d*196, TAPE=DAYS.map(()=>[...Array(SC*SR)].map(()=>r3()<.098));
+const PART=[...Array(46)].map((_,i)=>({d:Math.floor(r3()*5),c:Math.floor(r3()*SC),r:Math.floor(r3()*SR),row:i%9,t0:.3+r3()*2.6}));
+const PH=[[0,'Learns from past days,','weight = how much each signal raised the chance of a delay on previous days'],
+ [4,'detects delays live,','delayed now  ⇔  gap ≥ 5 min  and  ≥ 2 × usual'],
+ [9,'scores every station ahead,','p = σ( Σ weight × signal )   ·   ring if p ≥ top-5% line of past days'],
+ [15,'checks itself,','✓ hit   ·   ✗ false alarm   — graded against the trains that actually ran'],
+ [23.5,'and learns again.','today joins the history  →  weights relearned tonight']];
+function tape(tau){
+ txt('PAST DAYS',60,88,11,rgba(INK,.45),{w:700});
+ DAYS.forEach((d,k)=>{const x0=slotX(k),today=k===5;const fill=today?cl((tau-25.4)/1.4):1;
+  TAPE[k].forEach((amb,i)=>{const c=i%SC,r=Math.floor(i/SC);if(today&&(c+r*SC)/(SC*SR)>fill)return;
+   const x=x0+c*SX,y=104+r*SY;g.fillStyle=amb?rgba(AMB,.9):rgba(INK,today?.3:.18);g.fillRect(x,y,2.4,2.4)});
+  if(today&&fill<=0){g.strokeStyle=rgba(INK,.15);g.setLineDash([3,3]);g.strokeRect(x0-2,102,SC*SX+2,SR*SY+2);g.setLineDash([])}
+  txt(d,x0,166,11,rgba(today?AMB:INK,today?(tau>24?.95:.4):.45),{w:today?700:400})});
+}
+function frame(){
+ const tau=now(),t=oldT(tau),fo=Math.min(1,tau/.6,(T-tau)/.8);
+ for(let i=0;i<9;i++)LW[i]=ease((tau-.9-i*.22)/.7);WS=ease((tau-26.4)/1.2);
+ g.globalAlpha=1;g.fillStyle=BG;g.fillRect(0,0,W,H);
+ g.strokeStyle=rgba(INK,.025);g.lineWidth=1;for(let x=0;x<=1240;x+=40){g.beginPath();g.moveTo(x+.5,200);g.lineTo(x+.5,900);g.stroke()}for(let y=200;y<=900;y+=40){g.beginPath();g.moveTo(0,y+.5);g.lineTo(1240,y+.5);g.stroke()}
+ mainScene(t,1);g.globalAlpha=1;
+ tape(tau);
+ // learning: history dots flow into the weights
+ const px=1330,py=180;
+ PART.forEach(p=>{const f=(tau-p.t0)/1.1;if(f<=0||f>=1)return;const sx=slotX(p.d)+p.c*SX,sy=104+p.r*SY,tx=px+356,ty=py+107+p.row*40;const e=ease(f);
+  const x=lerp(sx,tx,e),y=lerp(sy,ty,e)-Math.sin(e*Math.PI)*60;glow(x,y,10,AMB,.7*(1-Math.abs(f-.5)))});
+ if(tau<4.2){const a=ease(tau/.6)*(1-ease((tau-3.6)/.6));g.globalAlpha=a;txt('learned weights',px+380,py+84,11,rgba(AMB,.9),{a:'right',w:700});g.globalAlpha=1}
+ // checking: graded outcomes flow back into today's slot
+ [['Bethnal Green',1],['Liverpool St',1],['Bank',1],['Holborn',0]].forEach(([nm,ok],i)=>{const f=(tau-23.8-i*.15)/1.5;if(f<=0||f>=1)return;const s=MAIN.find(m=>m[0]===nm),e=ease(f);
+  const x=lerp(s[1],slotX(5)+90,e),y=lerp(s[2],125,e)-Math.sin(e*Math.PI)*80;glow(x,y,16,ok?AMB:INK,.85)});
+ if(WS>0&&WS<1){g.globalAlpha=Math.sin(WS*Math.PI);txt('weights relearned',px+380,py+84,11,rgba(AMB,.9),{a:'right',w:700});g.globalAlpha=1}
+ // one sentence, active phrase highlighted
+ txt('HOW THE FORECAST LEARNS',60,60,12,rgba(INK,.45),{w:600});
+ let ai=PH.reduce((a,p,i)=>tau>=p[0]?i:a,0),x=60;g.font=`500 24px ${F}`;
+ PH.forEach(([s,ph],i)=>{const on=i===ai;txt(ph,x,962,24,rgba(on?INK:INK,on?.95:.32),{w:on?600:500});g.font=`${on?600:500} 24px ${F}`;x+=g.measureText(ph+' ').width});
+ txt(PH[ai][2],60,1004,17,rgba(AMB,.9),{w:600});
+ if(fo<1){g.globalAlpha=1-fo;g.fillStyle=BG;g.fillRect(0,0,W,H);g.globalAlpha=1}
+ if(FIX==null)requestAnimationFrame(frame)}
+
+frame();
+</script></body></html>
