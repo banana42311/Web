@@ -252,19 +252,14 @@ export const projects = [
     pos: { x: 900, y: 520 },
     homeSize: { width: 300, height: 400 },
     reveal: { bg: "#12161c", ink: "#eef2f6", muted: "rgba(238,242,246,.58)" },
-    embedUrl: "/tubecast/loop.html",
+    embedUrl: "/tubecast/index.html",
     embedHeight: "calc(100svh - 72px)",
     intro: {
       heading: "Tubecast",
       body: "Tubecast forecasts which London Underground station and direction is slowing now and in the next 10, 20 and 30 minutes, before any announcement. It reads live train arrivals every minute across 773 station-direction points on 12 lines, logs each forecast, scores it on real trains the next day and relearns daily.",
     },
     thumb: "/projects/Tubecast/Thumb.png",
-    images: [
-      "/projects/Tubecast/Slide 16_9 - 1.png",
-      "/projects/Tubecast/Slide 16_9 - 2.png",
-      "/projects/Tubecast/Slide 16_9 - 3.png",
-      "/projects/Tubecast/Slide 16_9 - 4.png",
-    ],
+    images: [],
     links: [],
   },
 ];
