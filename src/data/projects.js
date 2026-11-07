@@ -283,7 +283,6 @@ export const projects = [
       { type: "image", src: "/projects/FoxInLondon/03-map.jpg", alt: "Fox in London map: illustrated foxes cut into a map of London" },
       { type: "video", url: "/projects/FoxInLondon/04-demo.mp4", poster: "/projects/FoxInLondon/04-poster.jpg", title: "Fox in London play demo" },
       { type: "image", src: "/projects/FoxInLondon/05-book.jpg", alt: "Pop-up storybook and Snap Specs on the exhibition table" },
-      { type: "image", src: "/projects/FoxInLondon/06-ae-lab.jpg", alt: "Extended Reality Sunday Social programme at A+E Lab", caption: "Exhibited at the A+E Lab studio, London.", narrow: true },
       { type: "image", src: "/projects/FoxInLondon/07-visitor.jpg", alt: "A visitor reading the pop-up storybook" },
     ],
     links: [],
