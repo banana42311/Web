@@ -35,7 +35,8 @@ const layout = [
   <header class="nav">
     <a class="nav-name" href="/">Ji Su Kim</a>
     <nav class="nav-modes" aria-label="View">
-      <button type="button" data-mode="flow" class="active" aria-pressed="true">Flow</button>
+      <button type="button" data-mode="intro" class="active" aria-pressed="true">Index</button>
+      <button type="button" data-mode="flow" aria-pressed="false">Flow</button>
       <button type="button" data-mode="slide" aria-pressed="false">Slide</button>
     </nav>
     <nav class="nav-links" aria-label="Info">
@@ -43,6 +44,16 @@ const layout = [
       <button type="button" id="contactBtn" data-contact-open>Contact</button>
     </nav>
   </header>
+
+  <section class="intro" id="intro" aria-label="Selected work, index">
+    <div class="intro-bar"><i id="introProgress"></i></div>
+    <div class="intro-grid" id="introGrid"></div>
+    <p class="intro-center">Interaction &amp; Experience Design</p>
+    <p class="intro-label" id="introLabel" aria-live="polite"></p>
+    <span class="intro-num intro-num-tr">{String(projects.length).padStart(2, "0")}</span>
+    <span class="intro-num intro-num-bl"><i></i>20</span>
+    <span class="intro-num intro-num-br">26</span>
+  </section>
 
   <div class="stage">
     <section class="flow" id="flow" aria-label="Selected work">
@@ -121,7 +132,7 @@ const layout = [
     const footTitle = document.getElementById("footTitle");
     const footName = document.getElementById("footName");
     const footMeta = document.getElementById("footMeta");
-    let mode = "flow", modalOpen = false;
+    let mode = "intro", modalOpen = false;
     const isAnyModalOpen = () => modalOpen || document.body.classList.contains("modal-open");
     let isEntering = false;
 
@@ -237,7 +248,7 @@ const layout = [
       if (m !== "flow") { footTitle.classList.remove("show"); document.body.classList.remove("hovering"); }
     }
     modeButtons.forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
-    document.body.dataset.mode = "flow";
+    document.body.dataset.mode = "intro";
 
     const backdrop = document.getElementById("backdrop");
     const modal = backdrop.querySelector(".modal");
@@ -413,6 +424,67 @@ const layout = [
       if (e.key !== "Escape" || !modalOpen) return;
       if (aboutBackdrop.classList.contains("open")) closeInfo(); else closeModal();
     });
+
+    /* ── Index intro: cycling tile scenes ── */
+    const intro = document.getElementById("intro");
+    const introGrid = document.getElementById("introGrid");
+    const introLabel = document.getElementById("introLabel");
+    const introProgress = document.getElementById("introProgress");
+    // [col,row,w,h] in grid cells (9 x 6)
+    const templates = [
+      [[0,0,2,2],[5,0,2,2],[2.5,2,2,2],[7,2,2,2],[1.5,4,1.5,1.5]],
+      [[0,2.5,2,2],[6.5,0,2,2],[3,1,2,2],[3,3.5,1.5,1.5],[7,3.5,2,2]],
+      [[1,0.5,2,2],[3.5,3,2.5,2.5],[6.5,0.5,2,2],[0,4,1.5,1.5],[7.5,4,1.5,1.5]],
+    ];
+    const withThumb = projects.map((p, i) => ({ p, i })).filter((x) => x.p.thumb);
+    const SCENE_MS = 1700;
+    let sceneIdx = 0, introTimer = null, introPaused = false;
+    const sceneCount = Math.ceil(withThumb.length / 4);
+    const slotEls = [];
+    for (let s = 0; s < 5; s++) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "itile";
+      b.innerHTML = '<img alt="" draggable="false">';
+      introGrid.appendChild(b); slotEls.push(b);
+      b.addEventListener("click", () => { if (b.dataset.i) openModal(+b.dataset.i); });
+      b.addEventListener("mouseenter", () => { introPaused = true; introLabel.textContent = b.dataset.t || ""; introLabel.classList.add("on"); });
+      b.addEventListener("mouseleave", () => { introPaused = false; introLabel.classList.remove("on"); });
+    }
+    function playScene(n) {
+      const tpl = templates[n % templates.length];
+      const flip = n % 2;
+      slotEls.forEach((el, s) => {
+        el.classList.remove("in"); el.classList.add("out");
+      });
+      setTimeout(() => {
+        slotEls.forEach((el, s) => {
+          const k = (n * 4 + s) % withThumb.length;
+          const { p, i } = withThumb[k];
+          const [c, r, w, h] = tpl[s % tpl.length];
+          el.style.setProperty("--c", c); el.style.setProperty("--r", r);
+          el.style.setProperty("--w", w); el.style.setProperty("--h", h);
+          el.style.transformOrigin = (s + flip) % 2 ? "100% 100%" : "0 0";
+          el.dataset.i = i; el.dataset.t = `${p.title} — ${p.year}`;
+          el.setAttribute("aria-label", `Open ${p.title}`);
+          const img = el.firstChild; img.src = p.thumb; img.alt = p.title;
+          el.classList.toggle("fit", p.slug === "linko");
+          el.hidden = s >= 5 || (s === 4 && withThumb.length < 5);
+          setTimeout(() => { el.classList.remove("out"); el.classList.add("in"); }, 60 + s * 90);
+        });
+      }, 420);
+      introProgress.style.transition = "none"; introProgress.style.width = "0";
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        introProgress.style.transition = `width ${SCENE_MS}ms linear`; introProgress.style.width = "100%";
+      }));
+    }
+    function introLoop() {
+      clearTimeout(introTimer);
+      introTimer = setTimeout(() => {
+        if (mode === "intro" && !introPaused && !isAnyModalOpen() && !document.hidden) { sceneIdx = (sceneIdx + 1) % sceneCount; playScene(sceneIdx); }
+        introLoop();
+      }, SCENE_MS);
+    }
+    playScene(0); introLoop();
 
     tick();
   </script>
