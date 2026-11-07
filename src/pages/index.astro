@@ -3,15 +3,15 @@ import Layout from "../layouts/Layout.astro";
 import { projects } from "../data/projects.js";
 const thumbOf = (p) => p.thumb ?? null;
 const slideOrder = [
-  "tubecast",
-  "fox-in-london",
-  "enigma-variations",
   "oak-tree",
   "situated-thresholds",
+  "fox-in-london",
+  "tubecast",
+  "binary-conversion-implement",
+  "enigma-variations",
   "linko",
   "dodo",
   "no-more-algorithm",
-  "binary-conversion-implement",
 ];
 const slideProjects = slideOrder
   .map((slug) => {
@@ -19,25 +19,27 @@ const slideProjects = slideOrder
     return index >= 0 ? { project: projects[index], index } : null;
   })
   .filter(Boolean);
-const layout = [
-  { x: 7,    y: 33, w: 21.5 },
-  { x: 40.5, y: 13, w: 16 },
-  { x: 72,   y: 32, w: 16 },
-  { x: 71.5, y: 65, w: 18.5 },
-  { x: 18.5, y: 65, w: 15.5 },
-  { x: 41.5, y: 56, w: 21 },
-  { x: 58.5, y: 12, w: 14 },
-  { x: 80,   y: 9,  w: 14 },
-  { x: 24,   y: 12, w: 14 },
-];
+// Flow positions by slug, centre outward: Oak Tree → … → Linko, DODO (outermost)
+const layoutBySlug = {
+  "oak-tree":                    { x: 43, y: 41, w: 15 },
+  "situated-thresholds":         { x: 26, y: 47, w: 14 },
+  "fox-in-london":               { x: 60, y: 20, w: 13 },
+  "tubecast":                    { x: 58, y: 66, w: 13 },
+  "binary-conversion-implement": { x: 28, y: 15, w: 14 },
+  "enigma-variations":           { x: 76, y: 42, w: 13 },
+  "linko":                       { x: 5,  y: 30, w: 13 },
+  "dodo":                        { x: 87, y: 72, w: 11 },
+  "no-more-algorithm":           { x: 64, y: 84, w: 11 },
+};
+const layout = projects.map((p) => layoutBySlug[p.slug] ?? { x: 20, y: 20, w: 14 });
 ---
 <Layout title="Ji Su Kim — Interaction & Experience Design">
   <header class="nav">
     <a class="nav-name" href="/">Ji Su Kim</a>
     <nav class="nav-modes" aria-label="View">
-      <button type="button" data-mode="intro" class="active" aria-pressed="true">Index</button>
-      <button type="button" data-mode="flow" aria-pressed="false">Flow</button>
+      <button type="button" data-mode="flow" class="active" aria-pressed="true">Flow</button>
       <button type="button" data-mode="slide" aria-pressed="false">Slide</button>
+      <button type="button" data-mode="intro" aria-pressed="false">Index</button>
     </nav>
     <nav class="nav-links" aria-label="Info">
       <button type="button" id="aboutBtn">About</button>
@@ -47,7 +49,6 @@ const layout = [
 
   <section class="intro" id="intro" aria-label="Selected work, index">
     <div class="intro-frame" id="introFrame"></div>
-    <p class="intro-label" id="introLabel" aria-live="polite"></p>
   </section>
 
   <div class="stage">
@@ -127,7 +128,7 @@ const layout = [
     const footTitle = document.getElementById("footTitle");
     const footName = document.getElementById("footName");
     const footMeta = document.getElementById("footMeta");
-    let mode = "intro", modalOpen = false;
+    let mode = "flow", modalOpen = false;
     const isAnyModalOpen = () => modalOpen || document.body.classList.contains("modal-open");
     let isEntering = false;
 
@@ -243,7 +244,7 @@ const layout = [
       if (m !== "flow") { footTitle.classList.remove("show"); document.body.classList.remove("hovering"); }
     }
     modeButtons.forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
-    document.body.dataset.mode = "intro";
+    document.body.dataset.mode = "flow";
 
     const backdrop = document.getElementById("backdrop");
     const modal = backdrop.querySelector(".modal");
@@ -423,13 +424,19 @@ const layout = [
     /* ── Index intro: scroll-driven 3-row stacks ── */
     const intro = document.getElementById("intro");
     const frame = document.getElementById("introFrame");
-    const introLabel = document.getElementById("introLabel");
-    const withThumb = projects.map((p, i) => ({ p, i })).filter((x) => x.p.thumb);
+    const slideOrderJs = ["oak-tree","situated-thresholds","fox-in-london","tubecast","binary-conversion-implement","enigma-variations","linko","dodo","no-more-algorithm"];
+    const withThumb = slideOrderJs.map((slug) => projects.findIndex((p) => p.slug === slug))
+      .filter((i) => i >= 0 && projects[i].thumb).map((i) => ({ p: projects[i], i }));
     const N = withThumb.length;
-    const xPat = [[0.02,0.56],[0.30,0.84],[0.10,0.62],[0.44,0.92],[0.0,0.40],[0.22,0.72],[0.52,0.96],[0.06,0.46]];
+    const xCenters = [[0.24, 0.70], [0.32, 0.78]];
     const tileEls = new Map();
     let fp = 0, ft = 0, snapTimer = null;
     const mod = (n, m) => ((n % m) + m) % m;
+    function moveTileSee(el, e) {
+      const r = el.getBoundingClientRect();
+      el.style.setProperty("--see-x", clamp(((e.clientX - r.left) / r.width) * 100, -32, 132).toFixed(1) + "%");
+      el.style.setProperty("--see-y", clamp(((e.clientY - r.top) / r.height) * 100, -32, 132).toFixed(1) + "%");
+    }
     function tileFor(k, j) {
       const key = k + ":" + j;
       let el = tileEls.get(key);
@@ -437,18 +444,34 @@ const layout = [
         const { p, i } = withThumb[mod(k * 2 + j, N)];
         el = document.createElement("button");
         el.type = "button"; el.className = "itile" + (p.slug === "linko" ? " fit" : "");
-        el.dataset.i = i; el.dataset.t = `${p.title} — ${p.year}`;
+        el.dataset.i = i; el._h = 1; el._a = 1;
         el.setAttribute("aria-label", `Open ${p.title}`);
-        el.innerHTML = `<img src="${p.thumb}" alt="${p.title}" draggable="false">`;
+        el.innerHTML = `<img src="${p.thumb}" alt="${p.title}" draggable="false"><span class="see-more">SEE MORE</span>`;
+        const img = el.firstChild;
+        const setA = () => { if (img.naturalHeight) el._a = clamp(img.naturalWidth / img.naturalHeight, 0.8, 1.9); };
+        if (img.complete) setA(); else img.addEventListener("load", setA);
+        const show = (e) => {
+          if (+el.style.getPropertyValue("--s") < 0.55) return;
+          if (e && e.clientX !== undefined) moveTileSee(el, e);
+          el.classList.add("is-hover");
+          footName.textContent = p.title; footMeta.textContent = `${p.year} · ${p.category}`;
+          const sc = clamp(1 - Math.max(0, p.title.length - 15) * 0.026, 0.55, 1);
+          footName.style.fontSize = `clamp(2rem, ${clamp(7.92 * sc, 4.32, 7.92).toFixed(2)}vw, ${clamp(8.28 * sc, 4.41, 8.28).toFixed(2)}rem)`;
+          footTitle.classList.add("show"); document.body.classList.add("hovering");
+        };
+        const hide = () => {
+          el.classList.remove("is-hover"); footTitle.classList.remove("show"); document.body.classList.remove("hovering");
+        };
+        el.addEventListener("pointermove", (e) => { if (el.classList.contains("is-hover")) moveTileSee(el, e); else show(e); });
+        el.addEventListener("pointerenter", show);
+        el.addEventListener("pointerleave", hide);
         el.addEventListener("click", () => { if (!iDrag.moved && +el.style.getPropertyValue("--s") > 0.55) openModal(+el.dataset.i); });
-        el.addEventListener("mouseenter", () => { introLabel.textContent = el.dataset.t; introLabel.classList.add("on"); });
-        el.addEventListener("mouseleave", () => introLabel.classList.remove("on"));
         frame.appendChild(el); tileEls.set(key, el);
       }
       return el;
     }
     function renderIntro() {
-      const W = frame.clientWidth, H = frame.clientHeight, rowH = H / 3, size = rowH * 0.92;
+      const W = frame.clientWidth, H = frame.clientHeight, rowH = H / 3, h0 = rowH * 0.84;
       const base = Math.floor(fp), seen = new Set();
       for (let k = base - 1; k <= base + 4; k++) {
         const d = k - fp;
@@ -458,11 +481,14 @@ const layout = [
           const el = tileFor(k, j);
           if (s <= 0.01) { el.style.visibility = "hidden"; continue; }
           el.style.visibility = "visible";
-          const px = xPat[mod(k, xPat.length)][j];
-          const x = px * (W - size), y = (d + 0.5) * rowH - size / 2;
-          el.style.width = el.style.height = size + "px";
-          el.style.transform = `translate(${x}px,${y}px) scale(${s})`;
+          const w = Math.min(h0 * el._a, W * 0.36);
+          const x = clamp(xCenters[mod(k, 2)][j] * W - w / 2, 10, W - w - 10);
+          const y = (d + 0.5) * rowH - h0 / 2;
+          el._h += ((el.classList.contains("is-hover") ? 1.12 : 1) - el._h) * 0.2;
+          el.style.width = w + "px"; el.style.height = h0 + "px";
+          el.style.transform = `translate(${x}px,${y}px) scale(${(s * el._h).toFixed(4)})`;
           el.style.opacity = Math.min(1, s * 1.6);
+          el.style.zIndex = el.classList.contains("is-hover") ? 20 : 1;
           el.style.setProperty("--s", s);
         }
       }
