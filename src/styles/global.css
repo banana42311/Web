@@ -196,6 +196,9 @@ body[data-mode="slide"] .slide{display:block}
 .modal-media-frame{display:block;width:100%;background:var(--modal-bg,var(--bg))}
 .modal-body img{display:block;width:100%;height:auto;object-fit:contain}
 .modal-video-frame{aspect-ratio:16/9}
+.modal-video-file{display:block;width:100%;height:auto;aspect-ratio:16/9;background:#0d0d10}
+.modal-body .imgwrap.is-narrow .modal-media-frame{max-width:min(760px,92%);margin-inline:auto}
+.media-caption{display:block;padding:12px 0 4px;font-size:13.5px;line-height:1.5;color:var(--modal-muted,var(--ink-2))}
 .modal-video{display:block;width:100%;height:100%;aspect-ratio:16/9;border:0;background:#0d0d10}
 .project-shell.is-flush .modal-media-frame,.modal.is-flush .modal-media-frame{padding:0}
 .embed-shell{position:relative;flex:0 0 auto;width:100%;height:var(--embed-height,min(72vh,760px));min-height:420px;background:#0d0d10}

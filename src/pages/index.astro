@@ -4,6 +4,7 @@ import { projects } from "../data/projects.js";
 const thumbOf = (p) => p.thumb ?? null;
 const slideOrder = [
   "tubecast",
+  "fox-in-london",
   "oak-tree",
   "situated-thresholds",
   "linko",
@@ -25,6 +26,7 @@ const layout = [
   { x: 18.5, y: 65, w: 15.5 },
   { x: 41.5, y: 56, w: 21 },
   { x: 58.5, y: 12, w: 14 },
+  { x: 80,   y: 9,  w: 14 },
 ];
 ---
 <Layout title="Ji Su Kim — Interaction & Experience Design">
@@ -306,6 +308,16 @@ const layout = [
       });
     }
 
+    function mediaHtml(item, p, idx) {
+      if (typeof item === "object" && item.type === "video") {
+        return `<span class="imgwrap"><span class="modal-media-frame"><video class="modal-video-file" src="${item.url}" poster="${item.poster ?? ""}" controls playsinline preload="metadata" title="${item.title ?? ""}"></video></span></span>`;
+      }
+      if (typeof item === "object" && item.type === "image") {
+        return `<span class="imgwrap${item.narrow ? " is-narrow" : ""}"><span class="modal-media-frame"><img src="${item.src}" alt="${item.alt ?? `${p.title} image ${idx + 1}`}" loading="lazy">${item.caption ? `<span class="media-caption">${item.caption}</span>` : ""}</span></span>`;
+      }
+      return `<span class="imgwrap"><span class="modal-media-frame"><img src="${item}" alt="${p.title} image ${idx + 1}" loading="lazy"></span></span>`;
+    }
+
     function renderModalContent(p, lang = "en") {
       const images = p.imagesByLang?.[lang] ?? p.images ?? [];
       let html = "";
@@ -318,7 +330,7 @@ const layout = [
           if (typeof item === "object" && item.type === "youtube") {
             return `<span class="imgwrap"><span class="modal-media-frame modal-video-frame"><iframe class="modal-video" src="${item.url}" title="${item.title ?? `${p.title} video ${idx + 1}`}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></span></span>`;
           }
-          return `<span class="imgwrap"><span class="modal-media-frame"><img src="${item}" alt="${p.title} image ${idx + 1}" loading="lazy"></span></span>`;
+          return mediaHtml(item, p, idx);
         }).join("");
       }
       if (!p.embedUrl && !images.length) {

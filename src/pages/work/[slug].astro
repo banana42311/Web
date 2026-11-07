@@ -57,7 +57,24 @@ const mediaItems =
       <div class="modal-body project-page-body">
         <div id="projectMediaList">
           {mediaItems.map((item, idx) => (
-            typeof item === "object" && item.type === "embed"
+            typeof item === "object" && item.type === "video"
+              ? (
+                <span class="imgwrap">
+                  <span class="modal-media-frame">
+                    <video class="modal-video-file" src={item.url} poster={item.poster} controls playsinline preload="metadata" title={item.title}></video>
+                  </span>
+                </span>
+              )
+              : typeof item === "object" && item.type === "image"
+              ? (
+                <span class:list={["imgwrap", item.narrow && "is-narrow"]}>
+                  <span class="modal-media-frame">
+                    <img src={item.src} alt={item.alt ?? `${project.title} image ${idx + 1}`} loading="lazy" />
+                    {item.caption && <span class="media-caption">{item.caption}</span>}
+                  </span>
+                </span>
+              )
+              : typeof item === "object" && item.type === "embed"
               ? (
                 <div class="embed-shell" data-embed-shell style={item.height ? `--embed-height:${item.height}` : ""}>
                   <iframe class="project-embed" src={item.url} title={item.title} allow="fullscreen; accelerometer; gyroscope" loading="eager"></iframe>
@@ -140,6 +157,13 @@ const mediaItems =
 
       if (typeof item === "object" && item.type === "youtube") {
         return `<span class="imgwrap"><span class="modal-media-frame modal-video-frame"><iframe class="modal-video" src="${item.url}" title="${item.title ?? `${project.title} video ${idx + 1}`}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></span></span>`;
+      }
+
+      if (typeof item === "object" && item.type === "video") {
+        return `<span class="imgwrap"><span class="modal-media-frame"><video class="modal-video-file" src="${item.url}" poster="${item.poster ?? ""}" controls playsinline preload="metadata" title="${item.title ?? ""}"></video></span></span>`;
+      }
+      if (typeof item === "object" && item.type === "image") {
+        return `<span class="imgwrap${item.narrow ? " is-narrow" : ""}"><span class="modal-media-frame"><img src="${item.src}" alt="${item.alt ?? `${project.title} image ${idx + 1}`}" loading="lazy">${item.caption ? `<span class="media-caption">${item.caption}</span>` : ""}</span></span>`;
       }
 
       return `<span class="imgwrap"><span class="modal-media-frame"><img src="${item}" alt="${project.title} image ${idx + 1}" loading="lazy"></span></span>`;
