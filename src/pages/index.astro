@@ -8,10 +8,10 @@ const slideOrder = [
   "fox-in-london",
   "tubecast",
   "binary-conversion-implement",
+  "no-more-algorithm",
   "enigma-variations",
   "linko",
   "dodo",
-  "no-more-algorithm",
 ];
 const slideProjects = slideOrder
   .map((slug) => {
@@ -21,15 +21,15 @@ const slideProjects = slideOrder
   .filter(Boolean);
 // Flow positions by slug, centre outward: Oak Tree → … → Linko, DODO (outermost)
 const layoutBySlug = {
-  "oak-tree":                    { x: 43, y: 41, w: 15 },
-  "situated-thresholds":         { x: 26, y: 47, w: 14 },
-  "fox-in-london":               { x: 60, y: 20, w: 13 },
-  "tubecast":                    { x: 58, y: 66, w: 13 },
-  "binary-conversion-implement": { x: 28, y: 15, w: 14 },
-  "enigma-variations":           { x: 76, y: 42, w: 13 },
-  "linko":                       { x: 5,  y: 30, w: 13 },
-  "dodo":                        { x: 87, y: 72, w: 11 },
-  "no-more-algorithm":           { x: 64, y: 84, w: 11 },
+  "oak-tree":                    { x: 43.2, y: 39.2, w: 15 },
+  "situated-thresholds":         { x: 29,   y: 49,   w: 14 },
+  "fox-in-london":               { x: 59.2, y: 30.4, w: 13 },
+  "tubecast":                    { x: 59.8, y: 62.5, w: 13 },
+  "binary-conversion-implement": { x: 25.2, y: 20,   w: 14 },
+  "no-more-algorithm":           { x: 39.2, y: 72,   w: 11 },
+  "enigma-variations":           { x: 75.6, y: 44.4, w: 13 },
+  "linko":                       { x: 7.4,  y: 26,   w: 13 },
+  "dodo":                        { x: 79,   y: 70,   w: 11 },
 };
 const layout = projects.map((p) => layoutBySlug[p.slug] ?? { x: 20, y: 20, w: 14 });
 ---
@@ -424,7 +424,7 @@ const layout = projects.map((p) => layoutBySlug[p.slug] ?? { x: 20, y: 20, w: 14
     /* ── Index intro: scroll-driven 3-row stacks ── */
     const intro = document.getElementById("intro");
     const frame = document.getElementById("introFrame");
-    const slideOrderJs = ["oak-tree","situated-thresholds","fox-in-london","tubecast","binary-conversion-implement","enigma-variations","linko","dodo","no-more-algorithm"];
+    const slideOrderJs = ["oak-tree","situated-thresholds","fox-in-london","tubecast","binary-conversion-implement","no-more-algorithm","enigma-variations","linko","dodo"];
     const withThumb = slideOrderJs.map((slug) => projects.findIndex((p) => p.slug === slug))
       .filter((i) => i >= 0 && projects[i].thumb).map((i) => ({ p: projects[i], i }));
     const N = withThumb.length;
