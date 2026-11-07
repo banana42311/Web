@@ -46,13 +46,8 @@ const layout = [
   </header>
 
   <section class="intro" id="intro" aria-label="Selected work, index">
-    <div class="intro-bar"><i id="introProgress"></i></div>
-    <div class="intro-grid" id="introGrid"></div>
-    <p class="intro-center">Interaction &amp; Experience Design</p>
+    <div class="intro-frame" id="introFrame"></div>
     <p class="intro-label" id="introLabel" aria-live="polite"></p>
-    <span class="intro-num intro-num-tr">{String(projects.length).padStart(2, "0")}</span>
-    <span class="intro-num intro-num-bl"><i></i>20</span>
-    <span class="intro-num intro-num-br">26</span>
   </section>
 
   <div class="stage">
@@ -425,66 +420,83 @@ const layout = [
       if (aboutBackdrop.classList.contains("open")) closeInfo(); else closeModal();
     });
 
-    /* ── Index intro: cycling tile scenes ── */
+    /* ── Index intro: scroll-driven 3-row stacks ── */
     const intro = document.getElementById("intro");
-    const introGrid = document.getElementById("introGrid");
+    const frame = document.getElementById("introFrame");
     const introLabel = document.getElementById("introLabel");
-    const introProgress = document.getElementById("introProgress");
-    // [col,row,w,h] in grid cells (9 x 6)
-    const templates = [
-      [[0,0,2,2],[5,0,2,2],[2.5,2,2,2],[7,2,2,2],[1.5,4,1.5,1.5]],
-      [[0,2.5,2,2],[6.5,0,2,2],[3,1,2,2],[3,3.5,1.5,1.5],[7,3.5,2,2]],
-      [[1,0.5,2,2],[3.5,3,2.5,2.5],[6.5,0.5,2,2],[0,4,1.5,1.5],[7.5,4,1.5,1.5]],
-    ];
     const withThumb = projects.map((p, i) => ({ p, i })).filter((x) => x.p.thumb);
-    const SCENE_MS = 1700;
-    let sceneIdx = 0, introTimer = null, introPaused = false;
-    const sceneCount = Math.ceil(withThumb.length / 4);
-    const slotEls = [];
-    for (let s = 0; s < 5; s++) {
-      const b = document.createElement("button");
-      b.type = "button"; b.className = "itile";
-      b.innerHTML = '<img alt="" draggable="false">';
-      introGrid.appendChild(b); slotEls.push(b);
-      b.addEventListener("click", () => { if (b.dataset.i) openModal(+b.dataset.i); });
-      b.addEventListener("mouseenter", () => { introPaused = true; introLabel.textContent = b.dataset.t || ""; introLabel.classList.add("on"); });
-      b.addEventListener("mouseleave", () => { introPaused = false; introLabel.classList.remove("on"); });
+    const N = withThumb.length;
+    const xPat = [[0.02,0.56],[0.30,0.84],[0.10,0.62],[0.44,0.92],[0.0,0.40],[0.22,0.72],[0.52,0.96],[0.06,0.46]];
+    const tileEls = new Map();
+    let fp = 0, ft = 0, snapTimer = null;
+    const mod = (n, m) => ((n % m) + m) % m;
+    function tileFor(k, j) {
+      const key = k + ":" + j;
+      let el = tileEls.get(key);
+      if (!el) {
+        const { p, i } = withThumb[mod(k * 2 + j, N)];
+        el = document.createElement("button");
+        el.type = "button"; el.className = "itile" + (p.slug === "linko" ? " fit" : "");
+        el.dataset.i = i; el.dataset.t = `${p.title} — ${p.year}`;
+        el.setAttribute("aria-label", `Open ${p.title}`);
+        el.innerHTML = `<img src="${p.thumb}" alt="${p.title}" draggable="false">`;
+        el.addEventListener("click", () => { if (!iDrag.moved && +el.style.getPropertyValue("--s") > 0.55) openModal(+el.dataset.i); });
+        el.addEventListener("mouseenter", () => { introLabel.textContent = el.dataset.t; introLabel.classList.add("on"); });
+        el.addEventListener("mouseleave", () => introLabel.classList.remove("on"));
+        frame.appendChild(el); tileEls.set(key, el);
+      }
+      return el;
     }
-    function playScene(n) {
-      const tpl = templates[n % templates.length];
-      const flip = n % 2;
-      slotEls.forEach((el, s) => {
-        el.classList.remove("in"); el.classList.add("out");
-      });
-      setTimeout(() => {
-        slotEls.forEach((el, s) => {
-          const k = (n * 4 + s) % withThumb.length;
-          const { p, i } = withThumb[k];
-          const [c, r, w, h] = tpl[s % tpl.length];
-          el.style.setProperty("--c", c); el.style.setProperty("--r", r);
-          el.style.setProperty("--w", w); el.style.setProperty("--h", h);
-          el.style.transformOrigin = (s + flip) % 2 ? "100% 100%" : "0 0";
-          el.dataset.i = i; el.dataset.t = `${p.title} — ${p.year}`;
-          el.setAttribute("aria-label", `Open ${p.title}`);
-          const img = el.firstChild; img.src = p.thumb; img.alt = p.title;
-          el.classList.toggle("fit", p.slug === "linko");
-          el.hidden = s >= 5 || (s === 4 && withThumb.length < 5);
-          setTimeout(() => { el.classList.remove("out"); el.classList.add("in"); }, 60 + s * 90);
-        });
-      }, 420);
-      introProgress.style.transition = "none"; introProgress.style.width = "0";
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        introProgress.style.transition = `width ${SCENE_MS}ms linear`; introProgress.style.width = "100%";
-      }));
+    function renderIntro() {
+      const W = frame.clientWidth, H = frame.clientHeight, rowH = H / 3, size = rowH * 0.92;
+      const base = Math.floor(fp), seen = new Set();
+      for (let k = base - 1; k <= base + 4; k++) {
+        const d = k - fp;
+        const s = d < 0 ? 1 + d : d > 2 ? 3 - d : 1;
+        for (let j = 0; j < 2; j++) {
+          const key = k + ":" + j; seen.add(key);
+          const el = tileFor(k, j);
+          if (s <= 0.01) { el.style.visibility = "hidden"; continue; }
+          el.style.visibility = "visible";
+          const px = xPat[mod(k, xPat.length)][j];
+          const x = px * (W - size), y = (d + 0.5) * rowH - size / 2;
+          el.style.width = el.style.height = size + "px";
+          el.style.transform = `translate(${x}px,${y}px) scale(${s})`;
+          el.style.opacity = Math.min(1, s * 1.6);
+          el.style.setProperty("--s", s);
+        }
+      }
+      for (const [key, el] of tileEls) if (!seen.has(key)) { el.remove(); tileEls.delete(key); }
     }
-    function introLoop() {
-      clearTimeout(introTimer);
-      introTimer = setTimeout(() => {
-        if (mode === "intro" && !introPaused && !isAnyModalOpen() && !document.hidden) { sceneIdx = (sceneIdx + 1) % sceneCount; playScene(sceneIdx); }
-        introLoop();
-      }, SCENE_MS);
+    const iDrag = { on: false, y: 0, moved: false };
+    function introFrameLoop() {
+      fp += (ft - fp) * 0.12;
+      if (Math.abs(ft - fp) < 0.0005) fp = ft;
+      if (mode === "intro") renderIntro();
+      requestAnimationFrame(introFrameLoop);
     }
-    playScene(0); introLoop();
+    const queueSnap = () => { clearTimeout(snapTimer); snapTimer = setTimeout(() => { ft = Math.round(ft); }, 140); };
+    intro.addEventListener("wheel", (e) => {
+      if (isAnyModalOpen()) return;
+      e.preventDefault();
+      const rowH = frame.clientHeight / 3;
+      ft += clamp(e.deltaY, -120, 120) / (rowH * 1.1);
+      queueSnap();
+    }, { passive: false });
+    intro.addEventListener("pointerdown", (e) => { iDrag.on = true; iDrag.y = e.clientY; iDrag.moved = false; });
+    window.addEventListener("pointermove", (e) => {
+      if (!iDrag.on) return;
+      const dy = iDrag.y - e.clientY;
+      if (Math.abs(dy) > 3) iDrag.moved = true;
+      ft += dy / (frame.clientHeight / 3 * 1.1); iDrag.y = e.clientY; queueSnap();
+    });
+    window.addEventListener("pointerup", () => { iDrag.on = false; setTimeout(() => (iDrag.moved = false), 0); });
+    window.addEventListener("keydown", (e) => {
+      if (mode !== "intro" || isAnyModalOpen()) return;
+      if (e.key === "ArrowDown" || e.key === "PageDown") ft = Math.round(ft) + 1;
+      if (e.key === "ArrowUp" || e.key === "PageUp") ft = Math.round(ft) - 1;
+    });
+    introFrameLoop();
 
     tick();
   </script>
