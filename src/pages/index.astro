@@ -135,19 +135,26 @@ const layout = projects.map((p) => layoutBySlug[p.slug] ?? { x: 900, y: 450, w: 
     let tx = 0, ty = 0, cx = 0, cy = 0;
     let dragging = false, dragX = 0, dragY = 0, startTx = 0, startTy = 0, moved = 0;
 
+    // Pan range that lets every card be seen in full (plus a small margin)
     function panBounds() {
-      const extraX = Math.max(120, window.innerWidth * 0.22);
-      const extraY = Math.max(90, window.innerHeight * 0.14);
+      const m = 40, fW = flow.clientWidth, fH = flow.clientHeight;
+      const cW = canvas.offsetWidth, cH = canvas.offsetHeight;
+      const ccy = fH / 2 - (document.querySelector(".nav")?.offsetHeight ?? 66) / 2;
+      let L = Infinity, R = -Infinity, T = Infinity, B = -Infinity;
+      nodes.forEach((n) => {
+        L = Math.min(L, n.offsetLeft); R = Math.max(R, n.offsetLeft + n.offsetWidth);
+        T = Math.min(T, n.offsetTop); B = Math.max(B, n.offsetTop + n.offsetHeight);
+      });
       return {
-        x: Math.max(0, (canvas.offsetWidth - flow.clientWidth) / 2 + extraX),
-        y: Math.max(0, (canvas.offsetHeight - flow.clientHeight) / 2 + extraY),
+        maxX: Math.max(0, cW / 2 - fW / 2 - L + m), minX: Math.min(0, cW / 2 + fW / 2 - R - m),
+        maxY: Math.max(0, cH / 2 - ccy - T + m),    minY: Math.min(0, cH / 2 - ccy + fH - B - m),
       };
     }
 
     function setPanTarget(x, y) {
-      const bounds = panBounds();
-      tx = clamp(x, -bounds.x, bounds.x);
-      ty = clamp(y, -bounds.y, bounds.y);
+      const b = panBounds();
+      tx = clamp(x, b.minX, b.maxX);
+      ty = clamp(y, b.minY, b.maxY);
     }
 
     window.addEventListener("pointermove", (e) => {
@@ -161,8 +168,8 @@ const layout = projects.map((p) => layoutBySlug[p.slug] ?? { x: 900, y: 450, w: 
       }
       const nx = e.clientX / window.innerWidth - 0.5;
       const ny = e.clientY / window.innerHeight - 0.5;
-      const bounds = panBounds();
-      setPanTarget(-nx * bounds.x * 0.98, -ny * bounds.y * 0.96);
+      const b = panBounds();
+      setPanTarget(nx < 0 ? -2 * nx * b.maxX : 2 * nx * b.minX, ny < 0 ? -2 * ny * b.maxY : 2 * ny * b.minY);
     });
     flow.addEventListener("pointerdown", (e) => {
       if (mode !== "flow" || isAnyModalOpen()) return;
