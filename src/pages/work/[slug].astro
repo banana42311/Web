@@ -12,9 +12,9 @@ export function getStaticPaths() {
 const { project } = Astro.props;
 const heading = project.intro?.heading ?? project.title;
 const description = project.intro?.body ?? "";
-const modalBg = project.reveal?.bg ?? "var(--bg)";
-const modalInk = project.reveal?.ink ?? "var(--ink)";
-const modalMuted = project.reveal?.muted ?? "var(--ink-2)";
+const modalBg = "var(--bg)";
+const modalInk = "var(--ink)";
+const modalMuted = "var(--ink-2)";
 const hasLanguageSlides = Boolean(project.imagesByLang?.ko?.length && project.imagesByLang?.en?.length);
 const imageItems = hasLanguageSlides ? project.imagesByLang.en : project.images ?? [];
 const embedItem = project.embedUrl
@@ -25,10 +25,10 @@ const embedItem = project.embedUrl
       title: `${project.title} live experience`,
     }
   : null;
-const mediaItems =
-  embedItem && project.embedPlacement === "after-first-image" && imageItems.length
-    ? [imageItems[0], embedItem, ...imageItems.slice(1)]
-    : [...(embedItem ? [embedItem] : []), ...imageItems];
+const embedAt = project.embedPlacement === "after-first-image" ? 1 : project.embedPlacement === "after-second-image" ? 2 : 0;
+const mediaItems = embedItem
+  ? [...imageItems.slice(0, embedAt), embedItem, ...imageItems.slice(embedAt)]
+  : imageItems;
 ---
 
 <Layout title={`${project.title} — Ji Su Kim`} description={description || `${project.title} by Ji Su Kim`}>
@@ -62,6 +62,15 @@ const mediaItems =
                 <span class="imgwrap">
                   <span class="modal-media-frame">
                     <video class="modal-video-file" src={item.url} poster={item.poster} controls playsinline preload="metadata" title={item.title}></video>
+                  </span>
+                </span>
+              )
+              : typeof item === "object" && item.type === "slide-video"
+              ? (
+                <span class="imgwrap">
+                  <span class="modal-media-frame slide-video">
+                    <img src={item.src} alt={item.alt ?? ""} loading="lazy" />
+                    <video class="slide-video-el" src={item.video} style={`left:${item.box.x}%;top:${item.box.y}%;width:${item.box.w}%;height:${item.box.h}%`} autoplay muted loop playsinline controls preload="metadata" title={item.title}></video>
                   </span>
                 </span>
               )
@@ -143,9 +152,10 @@ const mediaItems =
           }
         : null;
 
-      return embedItem && project.embedPlacement === "after-first-image" && imageItems.length
-        ? [imageItems[0], embedItem, ...imageItems.slice(1)]
-        : [...(embedItem ? [embedItem] : []), ...imageItems];
+      const embedAt = project.embedPlacement === "after-first-image" ? 1 : project.embedPlacement === "after-second-image" ? 2 : 0;
+      return embedItem
+        ? [...imageItems.slice(0, embedAt), embedItem, ...imageItems.slice(embedAt)]
+        : imageItems;
     }
 
     function renderMediaItem(item, idx) {
@@ -153,6 +163,10 @@ const mediaItems =
         return `<div class="embed-shell" data-embed-shell style="${item.height ? `--embed-height:${item.height}` : ""}">
           <iframe class="project-embed" src="${item.url}" title="${item.title}" allow="fullscreen; accelerometer; gyroscope" loading="eager"></iframe>
         </div>`;
+      }
+
+      if (typeof item === "object" && item.type === "slide-video") {
+        return `<span class="imgwrap"><span class="modal-media-frame slide-video"><img src="${item.src}" alt="${item.alt ?? ""}" loading="lazy"><video class="slide-video-el" src="${item.video}" style="left:${item.box.x}%;top:${item.box.y}%;width:${item.box.w}%;height:${item.box.h}%" autoplay muted loop playsinline controls preload="metadata" title="${item.title ?? ""}"></video></span></span>`;
       }
 
       if (typeof item === "object" && item.type === "youtube") {

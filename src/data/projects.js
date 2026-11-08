@@ -44,6 +44,14 @@ const localizedSlides = (items, koreanFolder = "kr") => ({
 
 const situatedThresholdsSlides = [
   "/projects/SituatedThresholds/Slide 16_9 - 1.png",
+  {
+    type: "slide-video",
+    src: "/projects/SituatedThresholds/Slide 16_9 - 11.png",
+    alt: "London Breeze Film Festival poster, What if I am…",
+    video: "/projects/SituatedThresholds/IMG_7406.mp4",
+    title: "Situated Thresholds at London Breeze Film Festival",
+    box: { x: 56.77, y: 5.556, w: 28.125, h: 88.889 },
+  },
   "/projects/SituatedThresholds/Slide 16_9 - 2.png",
   "/projects/SituatedThresholds/Slide 16_9 - 3.png",
   "/projects/SituatedThresholds/Slide 16_9 - 4.png",
@@ -101,7 +109,7 @@ export const projects = [
     homeSize: { width: 554, height: 416 },
     reveal: { bg: "#00ffcc", ink: "#06080c", muted: "rgba(6,8,12,.62)" },
     embedUrl: "https://banana42311.github.io/situated_thresholds/",
-    embedPlacement: "after-first-image",
+    embedPlacement: "after-second-image",
     intro: {
       heading: "Situated Thresholds",
       body: "Situated Thresholds is a data-visualisation installation that traces where digital inequality begins. Mapping London's digital infrastructure against access to digital healthcare, it turns a gallery floor into a pressure-sensitive map — so that standing in a place, rather than clicking, becomes the way to read how access is unevenly distributed across the city.",

@@ -246,3 +246,8 @@ body[data-mode="intro"] .intro{display:block}
 .itile.is-hover .see-more{opacity:1;transform:translate(-50%,-50%) scale(1)}
 body.hovering .itile:not(.is-hover){opacity:.42!important}
 body.modal-open .intro{pointer-events:none}
+
+.slide-video{position:relative}
+.slide-video-el{position:absolute;object-fit:cover;background:#000}
+/* slide PNGs carry a near-black (#06080b) background; lift it to the site background */
+.modal-media-frame img[src$=".png"]{mix-blend-mode:lighten}

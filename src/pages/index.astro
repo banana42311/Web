@@ -31,7 +31,14 @@ const layoutBySlug = {
   "linko":                       { x: -182, y: 65,  w: 300, h: 245.5 },
   "dodo":                        { x: 1968, y: 279, w: 262, h: 261 },
 };
-const layout = projects.map((p) => layoutBySlug[p.slug] ?? { x: 900, y: 450, w: 300, h: 240 });
+// Scale the whole layout about its bounding-box centre (like resizing a selection)
+const FLOW_SCALE = 0.9;
+const baseBoxes = Object.values(layoutBySlug);
+const bx0 = Math.min(...baseBoxes.map((b) => b.x)), bx1 = Math.max(...baseBoxes.map((b) => b.x + b.w));
+const by0 = Math.min(...baseBoxes.map((b) => b.y)), by1 = Math.max(...baseBoxes.map((b) => b.y + b.h));
+const bcx = (bx0 + bx1) / 2, bcy = (by0 + by1) / 2;
+const scaleBox = (b) => ({ x: bcx + (b.x - bcx) * FLOW_SCALE, y: bcy + (b.y - bcy) * FLOW_SCALE, w: b.w * FLOW_SCALE, h: b.h * FLOW_SCALE });
+const layout = projects.map((p) => scaleBox(layoutBySlug[p.slug] ?? { x: 900, y: 450, w: 300, h: 240 }));
 ---
 <Layout title="Ji Su Kim — Interaction & Experience Design">
   <header class="nav">
@@ -325,6 +332,9 @@ const layout = projects.map((p) => layoutBySlug[p.slug] ?? { x: 900, y: 450, w: 
     }
 
     function mediaHtml(item, p, idx) {
+      if (typeof item === "object" && item.type === "slide-video") {
+        return `<span class="imgwrap"><span class="modal-media-frame slide-video"><img src="${item.src}" alt="${item.alt ?? ""}" loading="lazy"><video class="slide-video-el" src="${item.video}" style="left:${item.box.x}%;top:${item.box.y}%;width:${item.box.w}%;height:${item.box.h}%" autoplay muted loop playsinline controls preload="metadata" title="${item.title ?? ""}"></video></span></span>`;
+      }
       if (typeof item === "object" && item.type === "video") {
         return `<span class="imgwrap"><span class="modal-media-frame"><video class="modal-video-file" src="${item.url}" poster="${item.poster ?? ""}" controls playsinline preload="metadata" title="${item.title ?? ""}"></video></span></span>`;
       }
@@ -337,18 +347,17 @@ const layout = projects.map((p) => layoutBySlug[p.slug] ?? { x: 900, y: 450, w: 
     function renderModalContent(p, lang = "en") {
       const images = p.imagesByLang?.[lang] ?? p.images ?? [];
       let html = "";
-      if (p.embedUrl) {
-        html += `<div class="embed-shell" data-embed-shell style="${p.embedHeight ? `--embed-height:${p.embedHeight}` : ""}">
-          <iframe class="project-embed" src="${p.embedUrl}" title="${p.title} live experience" allow="fullscreen; accelerometer; gyroscope" loading="eager"></iframe></div>`;
-      }
-      if (images.length) {
-        html += images.map((item, idx) => {
-          if (typeof item === "object" && item.type === "youtube") {
-            return `<span class="imgwrap"><span class="modal-media-frame modal-video-frame"><iframe class="modal-video" src="${item.url}" title="${item.title ?? `${p.title} video ${idx + 1}`}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></span></span>`;
-          }
-          return mediaHtml(item, p, idx);
-        }).join("");
-      }
+      const embedHtml = p.embedUrl ? `<div class="embed-shell" data-embed-shell style="${p.embedHeight ? `--embed-height:${p.embedHeight}` : ""}">
+          <iframe class="project-embed" src="${p.embedUrl}" title="${p.title} live experience" allow="fullscreen; accelerometer; gyroscope" loading="eager"></iframe></div>` : "";
+      const embedAt = p.embedPlacement === "after-first-image" ? 1 : p.embedPlacement === "after-second-image" ? 2 : 0;
+      const parts = images.map((item, idx) => {
+        if (typeof item === "object" && item.type === "youtube") {
+          return `<span class="imgwrap"><span class="modal-media-frame modal-video-frame"><iframe class="modal-video" src="${item.url}" title="${item.title ?? `${p.title} video ${idx + 1}`}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></span></span>`;
+        }
+        return mediaHtml(item, p, idx);
+      });
+      if (embedHtml) parts.splice(Math.min(embedAt, parts.length), 0, embedHtml);
+      html += parts.join("");
       if (!p.embedUrl && !images.length) {
         html += `<div class="m-empty"><div class="ph" style="background:radial-gradient(130% 130% at 30% 20%, ${p.color}, #0d0d10 80%)"></div><p>Case study coming soon</p></div>`;
       }
@@ -370,9 +379,9 @@ const layout = projects.map((p) => layoutBySlug[p.slug] ?? { x: 900, y: 450, w: 
       mDesc.textContent = p.intro?.body ?? ""; mDesc.hidden = !p.intro;
       modal.classList.toggle("is-embed", Boolean(p.embedUrl));
       modal.classList.toggle("is-flush", Boolean(p.flushImages));
-      modal.style.setProperty("--modal-bg", p.reveal?.bg ?? "var(--bg)");
-      modal.style.setProperty("--modal-ink", p.reveal?.ink ?? "var(--ink)");
-      modal.style.setProperty("--modal-muted", p.reveal?.muted ?? "var(--ink-2)");
+      modal.style.setProperty("--modal-bg", "var(--bg)");
+      modal.style.setProperty("--modal-ink", "var(--ink)");
+      modal.style.setProperty("--modal-muted", "var(--ink-2)");
       mLangToggle.hidden = !hasLanguageSlides(p);
       setModalLangButtons(activeModalLang);
       mBody.innerHTML = renderModalContent(p, activeModalLang);
