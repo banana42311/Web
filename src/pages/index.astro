@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import Onboarding from "../components/Onboarding.astro";
 import { projects } from "../data/projects.js";
 const thumbOf = (p) => p.thumb ?? null;
 const slideOrder = [
@@ -41,6 +42,7 @@ const scaleBox = (b) => ({ x: bcx + (b.x - bcx) * FLOW_SCALE, y: bcy + (b.y - bc
 const layout = projects.map((p) => scaleBox(layoutBySlug[p.slug] ?? { x: 900, y: 450, w: 300, h: 240 }));
 ---
 <Layout title="Ji Su Kim — Interaction & Experience Design">
+  <Onboarding />
   <header class="nav">
     <a class="nav-name" href="/">Ji Su Kim</a>
     <nav class="nav-modes" aria-label="View">
