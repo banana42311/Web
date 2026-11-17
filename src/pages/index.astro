@@ -20,6 +20,13 @@ const slideProjects = slideOrder
     return index >= 0 ? { project: projects[index], index } : null;
   })
   .filter(Boolean);
+const workTags = [...new Set(projects.flatMap((project) => project.tags ?? []))];
+const workGroups = slideProjects.reduce((groups, entry) => {
+  const previous = groups[groups.length - 1];
+  if (previous?.year === entry.project.year) previous.items.push(entry);
+  else groups.push({ year: entry.project.year, items: [entry] });
+  return groups;
+}, []);
 // Flow positions from Figma (Slide 16:9, 1920×1080): x, y, w, h in design px
 const layoutBySlug = {
   "oak-tree":                    { x: 1048, y: 324, w: 368, h: 309 },
@@ -46,7 +53,8 @@ const layout = projects.map((p) => scaleBox(layoutBySlug[p.slug] ?? { x: 900, y:
   <header class="nav">
     <a class="nav-name" href="/">Ji Su Kim</a>
     <nav class="nav-modes" aria-label="View">
-      <button type="button" data-mode="flow" class="active" aria-pressed="true">Flow</button>
+      <button type="button" data-mode="work" class="active" aria-pressed="true">Work</button>
+      <button type="button" data-mode="flow" aria-pressed="false">Flow</button>
       <button type="button" data-mode="slide" aria-pressed="false">Slide</button>
       <button type="button" data-mode="intro" aria-pressed="false">Index</button>
     </nav>
@@ -55,6 +63,39 @@ const layout = projects.map((p) => scaleBox(layoutBySlug[p.slug] ?? { x: 900, y:
       <button type="button" id="contactBtn" data-contact-open>Contact</button>
     </nav>
   </header>
+
+  <main class="work-view" id="workView" aria-label="Selected work, categories">
+    <nav class="work-tags" aria-label="Project categories">
+      {workTags.map((tag) => (
+        <button type="button" class="work-tag" data-tag={tag} aria-pressed="false" aria-controls="workList">{tag}</button>
+      ))}
+    </nav>
+    <div class="work-list" id="workList">
+      {workGroups.map((group, groupIndex) => (
+        <section class="work-group" aria-label={group.year}>
+          <span class="work-year">{group.year}</span>
+          <div class="work-items">
+            {group.items.map(({ project: p }, index) => (
+              <article class="work-item" data-tags={JSON.stringify(p.tags ?? [])} data-slug={p.slug}>
+                <a class="work-project" href={`/work/${p.slug}/`}>
+                  <div class="work-copy">
+                    <h2 class="work-title">{p.title}</h2>
+                    <span class="work-description">{p.category}</span>
+                  </div>
+                  <div class="work-media">
+                    {p.thumbVideo
+                      ? <video src={p.thumbVideo} poster={thumbOf(p)} autoplay muted loop playsinline preload="metadata" aria-label={p.title}></video>
+                      : <img src={thumbOf(p)} alt={p.title} loading={groupIndex === 0 && index < 3 ? "eager" : "lazy"} decoding="async" />}
+                  </div>
+                </a>
+              </article>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+    <svg class="work-lines" id="workLines" aria-hidden="true" focusable="false"></svg>
+  </main>
 
   <section class="intro" id="intro" aria-label="Selected work, index">
     <div class="intro-frame" id="introFrame"></div>
@@ -129,7 +170,12 @@ const layout = projects.map((p) => scaleBox(layoutBySlug[p.slug] ?? { x: 900, y:
     </div>
   </div>
 
-  <script define:vars={{ projects }}>
+  <script>
+    import { initWorkCategories } from "../scripts/work-categories.js";
+    initWorkCategories();
+  </script>
+
+  <script define:vars={{ projects, slideOrder }}>
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
     const flow = document.getElementById("flow");
     const canvas = document.getElementById("canvas");
@@ -137,7 +183,7 @@ const layout = projects.map((p) => scaleBox(layoutBySlug[p.slug] ?? { x: 900, y:
     const footTitle = document.getElementById("footTitle");
     const footName = document.getElementById("footName");
     const footMeta = document.getElementById("footMeta");
-    let mode = "flow", modalOpen = false;
+    let mode = "work", modalOpen = false;
     const isAnyModalOpen = () => modalOpen || document.body.classList.contains("modal-open");
     let isEntering = false;
 
@@ -258,9 +304,10 @@ const layout = projects.map((p) => scaleBox(layoutBySlug[p.slug] ?? { x: 900, y:
         b.classList.toggle("active", on); b.setAttribute("aria-pressed", on ? "true" : "false");
       });
       if (m !== "flow") { footTitle.classList.remove("show"); document.body.classList.remove("hovering"); }
+      document.dispatchEvent(new Event("portfolio:view-change"));
     }
     modeButtons.forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
-    document.body.dataset.mode = "flow";
+    document.body.dataset.mode = "work";
 
     const backdrop = document.getElementById("backdrop");
     const modal = backdrop.querySelector(".modal");
@@ -442,8 +489,7 @@ const layout = projects.map((p) => scaleBox(layoutBySlug[p.slug] ?? { x: 900, y:
     /* ── Index intro: scroll-driven 3-row stacks ── */
     const intro = document.getElementById("intro");
     const frame = document.getElementById("introFrame");
-    const slideOrderJs = ["oak-tree","situated-thresholds","fox-in-london","tubecast","binary-conversion-implement","no-more-algorithm","enigma-variations","linko","dodo"];
-    const withThumb = slideOrderJs.map((slug) => projects.findIndex((p) => p.slug === slug))
+    const withThumb = slideOrder.map((slug) => projects.findIndex((p) => p.slug === slug))
       .filter((i) => i >= 0 && projects[i].thumb).map((i) => ({ p: projects[i], i }));
     const N = withThumb.length;
     const xCenters = [[0.24, 0.70], [0.32, 0.78]];

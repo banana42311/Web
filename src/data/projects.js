@@ -100,6 +100,7 @@ const linkoSlides = [
 export const projects = [
   {
     slug: "situated-thresholds",
+    tags: ["Installation", "Data"],
     title: "Situated Thresholds",
     year: "2026",
     category: "Physical-computing data installation",
@@ -122,6 +123,7 @@ export const projects = [
   },
   {
     slug: "oak-tree",
+    tags: ["Installation", "Data"],
     title: "Oak Tree",
     year: "2026",
     category: "Live environmental visualisation",
@@ -146,6 +148,7 @@ export const projects = [
   },
   {
     slug: "dodo",
+    tags: ["Product"],
     title: "DODO",
     year: "2025",
     category: "Wellness product",
@@ -174,6 +177,7 @@ export const projects = [
   },
   {
     slug: "linko",
+    tags: ["Product"],
     title: "Linko",
     year: "2025",
     category: "UX/UI service design",
@@ -192,6 +196,7 @@ export const projects = [
   },
   {
     slug: "no-more-algorithm",
+    tags: ["Fashion"],
     title: "No More Algorithm",
     year: "2025",
     category: "Phygital fashion collection",
@@ -235,6 +240,7 @@ export const projects = [
   },
   {
     slug: "binary-conversion-implement",
+    tags: ["Installation", "Data"],
     title: "Binary Conversion Implement",
     year: "2025",
     category: "Interactive data installation",
@@ -252,6 +258,7 @@ export const projects = [
   },
   {
     slug: "tubecast",
+    tags: ["Data", "Product"],
     title: "Tubecast",
     year: "2026",
     category: "Delay forecast for the London Underground",
@@ -273,6 +280,7 @@ export const projects = [
   },
   {
     slug: "fox-in-london",
+    tags: ["Installation", "AR/VR"],
     title: "Fox in London",
     year: "2026",
     category: "AR pop-up storybook",
@@ -297,6 +305,7 @@ export const projects = [
   },
   {
     slug: "enigma-variations",
+    tags: ["Fashion"],
     title: "Enigma Variations",
     year: "2025",
     category: "Wearable furniture exploration",
