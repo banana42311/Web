@@ -57,11 +57,14 @@ class Element extends EventTarget {
   matches() { return true; }
 }
 
-function fixture(isTouch = false) {
+function fixture(isTouch = false, firstItemTags = ["Installation"]) {
   const labels = ["Installation", "Product"].map((tag) => new Element({ tag }, { right: 120, top: 200, height: 20 }));
-  const items = labels.map((label) => {
-    const item = new Element({ tags: JSON.stringify([label.dataset.tag]) });
-    item.selectors = { ".work-media": new Element({}, { left: 400, right: 600, top: 100, bottom: 300 }) };
+  const items = labels.map((label, index) => {
+    const item = new Element({ tags: JSON.stringify(index === 0 ? firstItemTags : [label.dataset.tag]) });
+    item.selectors = {
+      ".work-media": new Element({}, { left: 400, right: 600, top: 100, bottom: 300 }),
+      ".work-project": new Element(),
+    };
     return item;
   });
   const group = new Element();
@@ -120,6 +123,7 @@ test("touch tap filters and a second tap restores all works, without SVG paths",
   const f = fixture(true);
   try {
     f.labels[1].dispatchEvent(new Event("pointerenter"));
+    f.items[0].selectors[".work-media"].dispatchEvent(new Event("pointerenter"));
     assert.equal(f.svg.children.length, 0);
     f.labels[1].dispatchEvent(new Event("click"));
     assert.equal(f.items[0].hidden, true);
@@ -129,5 +133,53 @@ test("touch tap filters and a second tap restores all works, without SVG paths",
     assert.equal(f.frames.size, 0);
     f.labels[1].dispatchEvent(new Event("click"));
     assert.ok(f.items.every((item) => !item.hidden));
+  } finally { f.restore(); }
+});
+
+test("thumbnail hover connects every matching category, follows geometry, and clears on leave", () => {
+  const f = fixture(false, ["Installation", "Product"]);
+  try {
+    const media = f.items[0].selectors[".work-media"];
+    media.dispatchEvent(new Event("pointerenter"));
+    assert.equal(f.svg.children.length, 2);
+    assert.ok(f.labels.every((label) => label.classes.has("is-active")));
+    assert.equal(f.items[0].classes.has("is-dimmed"), false);
+    assert.equal(f.items[1].classes.has("is-dimmed"), true);
+    const paths = [...f.svg.children];
+    assert.equal(paths[0].attributes.get("d"), "M 400 210 L 126 210");
+    media.rect = { left: 500, right: 700, top: -200, bottom: 0 };
+    const [id, callback] = f.frames.entries().next().value;
+    f.frames.delete(id);
+    callback();
+    assert.equal(f.svg.children[0], paths[0]);
+    assert.equal(paths[0].attributes.get("d"), "M 500 0 L 126 210");
+    media.dispatchEvent(new Event("pointerleave"));
+    assert.equal(f.svg.children.length, 0);
+    assert.equal(f.frames.size, 0);
+    assert.ok(f.labels.every((label) => !label.classes.has("is-active")));
+    assert.ok(f.items.every((item) => !item.classes.has("is-dimmed")));
+  } finally { f.restore(); }
+});
+
+test("thumbnail hover takes priority over a focused category and project keyboard focus also connects", () => {
+  const f = fixture();
+  try {
+    f.labels[0].dispatchEvent(new Event("focus"));
+    const media = f.items[1].selectors[".work-media"];
+    media.dispatchEvent(new Event("pointerenter"));
+    assert.equal(f.labels[0].classes.has("is-active"), false);
+    assert.equal(f.labels[1].classes.has("is-active"), true);
+    media.dispatchEvent(new Event("pointerleave"));
+    assert.equal(f.labels[0].classes.has("is-active"), true);
+    f.labels[0].dispatchEvent(new Event("blur"));
+    const link = f.items[1].selectors[".work-project"];
+    link.dispatchEvent(new Event("focus"));
+    assert.equal(f.svg.children.length, 1);
+    assert.equal(f.labels[1].classes.has("is-active"), true);
+    f.doc.body.dataset.mode = "flow";
+    f.doc.dispatchEvent(new Event("portfolio:view-change"));
+    assert.equal(f.svg.children.length, 0);
+    assert.equal(f.frames.size, 0);
+    assert.ok(f.labels.every((label) => !label.classes.has("is-active")));
   } finally { f.restore(); }
 });
