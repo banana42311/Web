@@ -1,8 +1,7 @@
 <div id="onb" class="onb" role="dialog" aria-label="Intro" hidden>
   <canvas id="onb-canvas"></canvas>
-  <h1 class="onb-name">Ji Su Kim</h1>
   <div id="onb-dot" class="onb-dot"></div>
-  <button id="onb-enter" class="onb-enter" type="button">Enter<span class="onb-enter-mark" aria-hidden="true">+</span></button>
+  <button id="onb-enter" class="onb-enter" type="button">[Enter]</button>
 </div>
 
 <style>
@@ -15,7 +14,6 @@
   .onb[hidden] { display: none; }
   .onb.is-leaving { opacity: 0; pointer-events: none; }
   #onb-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-  .onb-name { position:absolute;top:32px;left:clamp(20px,4vw,64px);color:var(--ink);font:500 32px/1.1 var(--font);letter-spacing:0;pointer-events:none; }
   .onb-dot {
     position: absolute; left: 0; top: 0;
     width: 15px; height: 15px; margin: -7.5px 0 0 -7.5px;
@@ -30,20 +28,15 @@
   }
   .onb-enter {
     position: absolute; left: 0; top: 0;
-    display:flex;align-items:center;gap:24px;padding:14px 20px;
-    border:1px solid var(--ink-2);border-radius:999px;background:color-mix(in srgb,var(--bg) 65%,transparent);
-    backdrop-filter:blur(8px);
+    padding: 8px 10px; border: 0; background: none;
     font-family: var(--font, "Space Grotesk", system-ui, sans-serif);
     font-size: 16.5px; font-weight: 500; letter-spacing: .02em; line-height: 1;
     white-space: nowrap;
-    color: var(--ink);
+    color: var(--nav-muted, color-mix(in srgb, var(--accent, #2b2fc4) 68%, #fff));
     cursor: none; will-change: transform;
     transition: color .3s ease;
   }
   .onb.is-hot .onb-enter { color: #fff; }
-  .onb-enter-mark {font-size:22px;line-height:1;font-weight:300;transition:transform .3s;}
-  .onb.is-hot .onb-enter-mark {transform:rotate(90deg);}
-  .onb-enter:focus-visible {outline:2px solid var(--ink);outline-offset:5px;}
   @media (hover: none) { .onb, .onb-enter { cursor: auto; } }
 </style>
 
@@ -169,9 +162,7 @@
       ptr.vx += ((ptr.x - px) - ptr.vx) * 0.2; ptr.vy += ((ptr.y - py) - ptr.vy) * 0.2;
       ptr.power += ((ptr.active ? 1 : 0.55) - ptr.power) * 0.04;
       dot.style.transform = `translate(${ptr.x}px, ${ptr.y}px)`;
-      const buttonX = Math.max(btn.offsetWidth + 16, Math.min(W - 16, ptr.x - 24));
-      const buttonY = Math.max(100, Math.min(H - 40, ptr.y));
-      btn.style.transform = `translate(${buttonX}px, ${buttonY}px) translate(-100%, -50%)`;
+      btn.style.transform = `translate(${ptr.x - 17}px, ${ptr.y}px) translate(-100%, -50%)`;
 
       ctx.fillStyle = `rgb(${BG[0]},${BG[1]},${BG[2]})`;
       ctx.fillRect(0, 0, W, H);
