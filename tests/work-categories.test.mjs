@@ -4,9 +4,10 @@ import { readFileSync } from "node:fs";
 import { projects } from "../src/data/projects.js";
 import { initWorkCategories, thumbnailEdge } from "../src/scripts/work-categories.js";
 
-test("all nine projects have the requested tags and thumbnails", () => {
+test("all ten projects have the requested tags and thumbnails", () => {
   const expected = {
     "oak-tree": ["Installation", "Data"],
+    "inner-ocean": ["Installation"],
     "situated-thresholds": ["Installation", "Data"],
     "fox-in-london": ["Installation", "AR/VR"],
     tubecast: ["Data", "Product"],
@@ -16,18 +17,31 @@ test("all nine projects have the requested tags and thumbnails", () => {
     linko: ["Product"],
     dodo: ["Product"],
   };
-  assert.equal(projects.length, 9);
+  assert.equal(projects.length, 10);
   for (const project of projects) {
     assert.deepEqual(project.tags, expected[project.slug]);
     assert.ok(project.thumb);
   }
 });
 
-test("Work and Index reuse the existing Slide order", () => {
+test("Work reuses Slide order and Index is removed", () => {
   const source = readFileSync(new URL("../src/pages/index.astro", import.meta.url), "utf8");
   assert.equal((source.match(/const slideOrder\s*=/g) ?? []).length, 1);
   assert.ok(source.includes("const workGroups = slideProjects.reduce"));
-  assert.ok(source.includes("const withThumb = slideOrder.map"));
+  assert.ok(!source.includes('data-mode="intro"'));
+  assert.ok(!source.includes("introFrameLoop"));
+  const order = JSON.parse(source.match(/const slideOrder = (\[[\s\S]*?\]);/)[1].replace(/,\s*\]/g, "]"));
+  assert.deepEqual(order, ["oak-tree", "situated-thresholds", "fox-in-london", "tubecast", "inner-ocean", "linko", "dodo", "binary-conversion-implement", "no-more-algorithm", "enigma-variations"]);
+  assert.deepEqual(order.map((slug) => projects.find((p) => p.slug === slug).year), [...Array(7).fill("2026"), ...Array(3).fill("2025")]);
+});
+
+test("Inner Ocean presents its film before the live embed and deployable assets exist", () => {
+  const project = projects.find((p) => p.slug === "inner-ocean");
+  assert.equal(project.images[0].type, "youtube");
+  assert.equal(project.images[0].url, "https://www.youtube.com/embed/3sk8LVrqM2Q");
+  assert.equal(project.embedPlacement, "after-first-image");
+  assert.equal(project.embedUrl, "https://banana42311.github.io/INNER_OCEAN/");
+  assert.ok(readFileSync(new URL("../public" + project.thumb, import.meta.url)).length > 0);
 });
 
 test("connector terminates on the nearest thumbnail edge", () => {

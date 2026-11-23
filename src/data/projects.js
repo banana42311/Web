@@ -99,6 +99,24 @@ const linkoSlides = [
 
 export const projects = [
   {
+    slug: "inner-ocean",
+    tags: ["Installation"],
+    title: "Inner Ocean",
+    year: "2026",
+    category: "Interactive experience",
+    color: "#1a1a1a",
+    thumb: "/projects/Inner Ocean/thumb.jpeg",
+    embedUrl: "https://banana42311.github.io/INNER_OCEAN/",
+    embedPlacement: "after-first-image",
+    embedHeight: "calc(100svh - 72px)",
+    images: [{
+      type: "youtube",
+      url: "https://www.youtube.com/embed/3sk8LVrqM2Q",
+      title: "Inner Ocean film",
+    }],
+    links: [{ label: "Open live experience", url: "https://banana42311.github.io/INNER_OCEAN/" }],
+  },
+  {
     slug: "situated-thresholds",
     tags: ["Installation", "Data"],
     title: "Situated Thresholds",
@@ -150,7 +168,7 @@ export const projects = [
     slug: "dodo",
     tags: ["Product"],
     title: "DODO",
-    year: "2025",
+    year: "2026",
     category: "Wellness product",
     groups: ["ux-ui"],
     color: "#d3d2d0",
@@ -179,7 +197,7 @@ export const projects = [
     slug: "linko",
     tags: ["Product"],
     title: "Linko",
-    year: "2025",
+    year: "2026",
     category: "UX/UI service design",
     groups: ["ux-ui"],
     color: "#f7f7f4",

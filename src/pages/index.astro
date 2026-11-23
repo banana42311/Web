@@ -8,11 +8,12 @@ const slideOrder = [
   "situated-thresholds",
   "fox-in-london",
   "tubecast",
+  "inner-ocean",
+  "linko",
+  "dodo",
   "binary-conversion-implement",
   "no-more-algorithm",
   "enigma-variations",
-  "linko",
-  "dodo",
 ];
 const slideProjects = slideOrder
   .map((slug) => {
@@ -33,6 +34,7 @@ const layoutBySlug = {
   "situated-thresholds":         { x: 398,  y: 424, w: 361, h: 286 },
   "fox-in-london":               { x: 1466, y: 0,   w: 337, h: 188 },
   "tubecast":                    { x: 678,  y: 886, w: 361, h: 271 },
+  "inner-ocean":                 { x: 1180, y: 880, w: 320, h: 180 },
   "binary-conversion-implement": { x: 669,  y: -41, w: 265, h: 186 },
   "no-more-algorithm":           { x: 1635, y: 813, w: 293, h: 291 },
   "enigma-variations":           { x: -84,  y: 902, w: 403, h: 227 },
@@ -56,7 +58,6 @@ const layout = projects.map((p) => scaleBox(layoutBySlug[p.slug] ?? { x: 900, y:
       <button type="button" data-mode="work" class="active" aria-pressed="true">Work</button>
       <button type="button" data-mode="flow" aria-pressed="false">Flow</button>
       <button type="button" data-mode="slide" aria-pressed="false">Slide</button>
-      <button type="button" data-mode="intro" aria-pressed="false">Index</button>
     </nav>
     <nav class="nav-links" aria-label="Info">
       <button type="button" id="aboutBtn">About</button>
@@ -96,10 +97,6 @@ const layout = projects.map((p) => scaleBox(layoutBySlug[p.slug] ?? { x: 900, y:
     </div>
     <svg class="work-lines" id="workLines" aria-hidden="true" focusable="false"></svg>
   </main>
-
-  <section class="intro" id="intro" aria-label="Selected work, index">
-    <div class="intro-frame" id="introFrame"></div>
-  </section>
 
   <div class="stage">
     <section class="flow" id="flow" aria-label="Selected work">
@@ -486,107 +483,6 @@ const layout = projects.map((p) => scaleBox(layoutBySlug[p.slug] ?? { x: 900, y:
       if (aboutBackdrop.classList.contains("open")) closeInfo(); else closeModal();
     });
 
-    /* ── Index intro: scroll-driven 3-row stacks ── */
-    const intro = document.getElementById("intro");
-    const frame = document.getElementById("introFrame");
-    const withThumb = slideOrder.map((slug) => projects.findIndex((p) => p.slug === slug))
-      .filter((i) => i >= 0 && projects[i].thumb).map((i) => ({ p: projects[i], i }));
-    const N = withThumb.length;
-    const xCenters = [[0.24, 0.70], [0.32, 0.78]];
-    const tileEls = new Map();
-    let fp = 0, ft = 0, snapTimer = null;
-    const mod = (n, m) => ((n % m) + m) % m;
-    function moveTileSee(el, e) {
-      const r = el.getBoundingClientRect();
-      el.style.setProperty("--see-x", clamp(((e.clientX - r.left) / r.width) * 100, -32, 132).toFixed(1) + "%");
-      el.style.setProperty("--see-y", clamp(((e.clientY - r.top) / r.height) * 100, -32, 132).toFixed(1) + "%");
-    }
-    function tileFor(k, j) {
-      const key = k + ":" + j;
-      let el = tileEls.get(key);
-      if (!el) {
-        const { p, i } = withThumb[mod(k * 2 + j, N)];
-        el = document.createElement("button");
-        el.type = "button"; el.className = "itile" + (p.slug === "linko" ? " fit" : "");
-        el.dataset.i = i; el._h = 1; el._a = 1;
-        el.setAttribute("aria-label", `Open ${p.title}`);
-        el.innerHTML = `<img src="${p.thumb}" alt="${p.title}" draggable="false"><span class="see-more">SEE MORE</span>`;
-        const img = el.firstChild;
-        const setA = () => { if (img.naturalHeight) el._a = clamp(img.naturalWidth / img.naturalHeight, 0.8, 1.9); };
-        if (img.complete) setA(); else img.addEventListener("load", setA);
-        const show = (e) => {
-          if (+el.style.getPropertyValue("--s") < 0.55) return;
-          if (e && e.clientX !== undefined) moveTileSee(el, e);
-          el.classList.add("is-hover");
-          footName.textContent = p.title; footMeta.textContent = `${p.year} · ${p.category}`;
-          const sc = clamp(1 - Math.max(0, p.title.length - 15) * 0.026, 0.55, 1);
-          footName.style.fontSize = `clamp(2rem, ${clamp(7.92 * sc, 4.32, 7.92).toFixed(2)}vw, ${clamp(8.28 * sc, 4.41, 8.28).toFixed(2)}rem)`;
-          footTitle.classList.add("show"); document.body.classList.add("hovering");
-        };
-        const hide = () => {
-          el.classList.remove("is-hover"); footTitle.classList.remove("show"); document.body.classList.remove("hovering");
-        };
-        el.addEventListener("pointermove", (e) => { if (el.classList.contains("is-hover")) moveTileSee(el, e); else show(e); });
-        el.addEventListener("pointerenter", show);
-        el.addEventListener("pointerleave", hide);
-        el.addEventListener("click", () => { if (!iDrag.moved && +el.style.getPropertyValue("--s") > 0.55) openModal(+el.dataset.i); });
-        frame.appendChild(el); tileEls.set(key, el);
-      }
-      return el;
-    }
-    function renderIntro() {
-      const W = frame.clientWidth, H = frame.clientHeight, rowH = H / 3, h0 = rowH * 0.84;
-      const base = Math.floor(fp), seen = new Set();
-      for (let k = base - 1; k <= base + 4; k++) {
-        const d = k - fp;
-        const s = d < 0 ? 1 + d : d > 2 ? 3 - d : 1;
-        for (let j = 0; j < 2; j++) {
-          const key = k + ":" + j; seen.add(key);
-          const el = tileFor(k, j);
-          if (s <= 0.01) { el.style.visibility = "hidden"; continue; }
-          el.style.visibility = "visible";
-          const w = Math.min(h0 * el._a, W * 0.36);
-          const x = clamp(xCenters[mod(k, 2)][j] * W - w / 2, 10, W - w - 10);
-          const y = (d + 0.5) * rowH - h0 / 2;
-          el._h += ((el.classList.contains("is-hover") ? 1.12 : 1) - el._h) * 0.2;
-          el.style.width = w + "px"; el.style.height = h0 + "px";
-          el.style.transform = `translate(${x}px,${y}px) scale(${(s * el._h).toFixed(4)})`;
-          el.style.opacity = Math.min(1, s * 1.6);
-          el.style.zIndex = el.classList.contains("is-hover") ? 20 : 1;
-          el.style.setProperty("--s", s);
-        }
-      }
-      for (const [key, el] of tileEls) if (!seen.has(key)) { el.remove(); tileEls.delete(key); }
-    }
-    const iDrag = { on: false, y: 0, moved: false };
-    function introFrameLoop() {
-      fp += (ft - fp) * 0.12;
-      if (Math.abs(ft - fp) < 0.0005) fp = ft;
-      if (mode === "intro") renderIntro();
-      requestAnimationFrame(introFrameLoop);
-    }
-    const queueSnap = () => { clearTimeout(snapTimer); snapTimer = setTimeout(() => { ft = Math.round(ft); }, 140); };
-    intro.addEventListener("wheel", (e) => {
-      if (isAnyModalOpen()) return;
-      e.preventDefault();
-      const rowH = frame.clientHeight / 3;
-      ft += clamp(e.deltaY, -120, 120) / (rowH * 1.1);
-      queueSnap();
-    }, { passive: false });
-    intro.addEventListener("pointerdown", (e) => { iDrag.on = true; iDrag.y = e.clientY; iDrag.moved = false; });
-    window.addEventListener("pointermove", (e) => {
-      if (!iDrag.on) return;
-      const dy = iDrag.y - e.clientY;
-      if (Math.abs(dy) > 3) iDrag.moved = true;
-      ft += dy / (frame.clientHeight / 3 * 1.1); iDrag.y = e.clientY; queueSnap();
-    });
-    window.addEventListener("pointerup", () => { iDrag.on = false; setTimeout(() => (iDrag.moved = false), 0); });
-    window.addEventListener("keydown", (e) => {
-      if (mode !== "intro" || isAnyModalOpen()) return;
-      if (e.key === "ArrowDown" || e.key === "PageDown") ft = Math.round(ft) + 1;
-      if (e.key === "ArrowUp" || e.key === "PageUp") ft = Math.round(ft) - 1;
-    });
-    introFrameLoop();
 
     tick();
   </script>
